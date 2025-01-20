@@ -1,0 +1,26 @@
+/* General styles */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* Header */
+header {
+  position: sticky; /* Fija el header arriba mientras haces scroll */
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Footer */
+footer {
+  background-color: #f1f1f1;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Main content */
+main {
+  flex-grow: 1; /* Permite que el contenido principal ocupe el espacio restante */
+}
