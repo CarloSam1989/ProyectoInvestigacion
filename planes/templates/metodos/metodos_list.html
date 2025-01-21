@@ -1,0 +1,43 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="d-flex justify-content-between">
+  <h2>Lista de Métodos</h2>
+  <a href="{% url 'metodos_create' %}" class="btn btn-primary">
+    <i class="fa-solid fa-plus"></i> Nuevo Método
+  </a>
+</div>
+<br />
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Método</th>
+      <th scope="col">Acción</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for metodo in metodos %}
+    <tr>
+      <th scope="row">{{ metodo.id }}</th>
+      <td>{{ metodo.nombre }}</td>
+      <td colspan="2">
+        <a
+          href="{% url 'metodos_detail' metodo.pk %}"
+          class="btn btn-success me-2"
+          ><i class="fa-solid fa-circle-info"></i> Ver más</a
+        >
+        <a
+          href="{% url 'metodos_update' metodo.pk %}"
+          class="btn btn-warning me-2"
+          ><i class="fa-regular fa-pen-to-square"></i> Editar</a
+        >
+        <a href="{% url 'metodos_delete' metodo.pk %}" class="btn btn-danger"
+          ><i class="fa-solid fa-trash"></i> Eliminar</a
+        >
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<ul></ul>
+{% endblock %}

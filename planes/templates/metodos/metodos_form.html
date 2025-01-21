@@ -1,0 +1,28 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h1>{% if object %}Editar Método{% else %}Crear Método{% endif %}</h1>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="{{ form.nombre.id_for_label }}" class="form-label"
+          >Nombre</label
+        >
+        {{ form.nombre }}
+      </div>
+      <div class="mb-3">
+        <label for="{{ form.descripcion.id_for_label }}" class="form-label"
+          >Descripción</label
+        >
+        {{ form.descripcion }}
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'metodos_list' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

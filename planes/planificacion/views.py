@@ -1,10 +1,10 @@
 
 # Create your views here.
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.views import  LogoutView
-from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.shortcuts import redirect, render
+from .models import *
 
 USUARIOS = {
     "admin": "admin",
@@ -24,7 +24,6 @@ def CustomLoginView(request):
         if username in USUARIOS and USUARIOS[username] == password:
             # Guardar el estado de autenticación en la sesión
             request.session["user"] = username
-            messages.success(request, f"¡Bienvenido, {username}!")
             return redirect(request.GET.get("next", "menu_principal"))
         else:
             messages.error(request, "Usuario o contraseña incorrectos. Intenta de nuevo.")
@@ -41,3 +40,37 @@ def menu(request):
     
     # Renderizar el menú principal
     return render(request, "index.html", {"user": request.session["user"]})
+
+#METODOS
+
+# Vista para listar métodos
+class MetodosListView(ListView):
+    model = Metodos
+    template_name = 'metodos/metodos_list.html'
+    context_object_name = 'metodos'
+
+# Vista para ver detalles de un método
+class MetodosDetailView(DetailView):
+    model = Metodos
+    template_name = 'metodos/metodos_detail.html'
+    context_object_name = 'metodo'
+
+# Vista para crear un nuevo método
+class MetodosCreateView(CreateView):
+    model = Metodos
+    template_name = 'metodos/metodos_form.html'
+    fields = ['nombre', 'descripcion']
+    success_url = reverse_lazy('metodos_list')
+
+# Vista para actualizar un método existente
+class MetodosUpdateView(UpdateView):
+    model = Metodos
+    template_name = 'metodos/metodos_form.html'
+    fields = ['nombre', 'descripcion']
+    success_url = reverse_lazy('metodos_list')
+
+# Vista para eliminar un método
+class MetodosDeleteView(DeleteView):
+    model = Metodos
+    template_name = 'metodos/metodos_confirm_delete.html'
+    success_url = reverse_lazy('metodos_list')
