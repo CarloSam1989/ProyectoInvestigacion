@@ -41,17 +41,21 @@ class RecursosDidacticos(models.Model):
     def __str__(self):
         return self.nombre
     
+
 class Anexo1(models.Model):
     docente = models.TextField()
     materia = models.TextField()
     carrera = models.TextField()
+    semestre = models.CharField(max_length=10, default="Unknown")
     actividad = models.CharField(max_length=300)
     tema = models.TextField()
     trabajo_independiente = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
+    archivo = models.FileField(upload_to='anexo/', null=True, blank=True)
 
     def __str__(self):
-        return self.tema
+        return f"{self.tema} - {self.semestre}"
+
 
 class Planes(models.Model):
     metodo = models.ForeignKey(Metodos, on_delete=models.CASCADE)

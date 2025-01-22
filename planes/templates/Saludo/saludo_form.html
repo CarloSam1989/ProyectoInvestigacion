@@ -1,0 +1,28 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h1>{% if object %}Editar Saludo {% else %}Crear Saludo {% endif %}</h1>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="{{ form.saludo.id_for_label }}" class="form-label"
+          >Saludo</label
+        >
+        {{ form.saludo }}
+      </div>
+      <div class="mb-3">
+        <label for="{{ form.asignatura.id_for_label }}" class="form-label"
+          >Materia</label
+        >
+        {{ form.materia }}
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'saludo_list' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

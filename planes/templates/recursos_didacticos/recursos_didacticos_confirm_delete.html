@@ -3,7 +3,9 @@
 <form method="post">
   {% csrf_token %}
   <button type="submit" class="btn btn-danger">Eliminar</button>
-  <a href="{% url 'metodos_list' %}" class="btn btn-secondary">Cancelar</a>
+  <a href="{% url 'recursos_didacticos_list' %}" class="btn btn-secondary"
+    >Cancelar</a
+  >
 </form>
 
 {% endblock %}

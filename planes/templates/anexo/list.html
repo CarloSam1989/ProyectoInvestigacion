@@ -1,0 +1,40 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Lista de Anexos</h1>
+
+<!-- Encabezados fuera de la tabla -->
+<div class="table-headers mb-3">
+  <div><strong>Docente:</strong> {{ anexos.0.docente }}</div>
+  <div><strong>Materia:</strong> {{ anexos.0.materia }}</div>
+  <div><strong>Carrera:</strong> {{ anexos.0.carrera }}</div>
+</div>
+
+<!-- Tabla con los demás detalles -->
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th scope="col">Actividad</th>
+      <th scope="col">Tema</th>
+      <th scope="col">Trabajo Independiente</th>
+      <th scope="col">Archivo</th>
+      <th scope="col">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for anexo in anexos %}
+    <tr>
+      <td scope="row">{{ anexo.actividad }}</td>
+      <td>{{ anexo.tema }}</td>
+      <td>{{ anexo.trabajo_independiente }}</td>
+      <td>
+        <a href="{{ anexo.archivo.url }}" class="btn btn-info">Ver Archivo</a>
+      </td>
+      <td></td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="5" class="text-center">No hay registros disponibles.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
