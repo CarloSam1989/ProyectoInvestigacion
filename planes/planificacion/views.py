@@ -9,12 +9,13 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.shortcuts import redirect, render
 from .models import *
 from .forms import *
-from django.db.models import Q
+from collections import defaultdict
+
 
 USUARIOS = {
     "admin": "admin",
-    "user1": "admin",
-    "user2": "admin"
+    "user1": "Carlos",
+    "user2": "Jorge"
 }
 
 def CustomLoginView(request):
@@ -72,7 +73,7 @@ class MetodosDetailView(SessionAuthRequiredMixin, DetailView):
 class MetodosCreateView(SessionAuthRequiredMixin, CreateView):
     model = Metodos
     template_name = 'metodos/metodos_form.html'
-    fields = ['nombre', 'descripcion']
+    form_class = MetodosForm
     success_url = reverse_lazy('metodos_list')
 
 # Vista para actualizar un método existente
@@ -108,7 +109,7 @@ class TecnicaCierreDetailView(SessionAuthRequiredMixin, DetailView):
 class TecnicaCierreCreateView(SessionAuthRequiredMixin, CreateView):
     model = TecnicaCierre
     template_name = 'tecnica_cierre/tecnica_cierre_form.html'
-    fields = ['nombre', 'descripcion']
+    form_class = TecnicaCierreForm
     success_url = reverse_lazy('tecnica_cierre_list')
 
 # Vista para actualizar un método existente
@@ -144,7 +145,7 @@ class RecursosDidacticosDetailView(SessionAuthRequiredMixin, DetailView):
 class RecursosDidacticosCreateView(SessionAuthRequiredMixin, CreateView):
     model = RecursosDidacticos
     template_name = 'recursos_didacticos/recursos_didacticos_form.html'
-    fields = ['nombre', 'descripcion']
+    form_class = RecursosDidacticosForm
     success_url = reverse_lazy('recursos_didacticos_list')
 
 # Vista para actualizar un método existente
@@ -180,7 +181,7 @@ class FormaEnseDetailView(SessionAuthRequiredMixin, DetailView):
 class FormaEnseCreateView(SessionAuthRequiredMixin, CreateView):
     model = FormasEnse
     template_name = 'forma_ense/forma_ense_form.html'
-    fields = ['nombre', 'descripcion']
+    form_class = FormasEnseForm
     success_url = reverse_lazy('forma_ense_list')
 
 # Vista para actualizar un método existente
@@ -205,6 +206,17 @@ class SaludoListView(SessionAuthRequiredMixin, ListView):
     template_name = 'saludo/saludo_list.html'
     context_object_name = 'saludo'
 
+    def get_queryset(self):
+        # Obtener el usuario de la sesión
+        user = self.request.session.get('user')
+
+        # Filtrar por el campo docente que coincida con el usuario de la sesión
+        if user:
+            return Saludo.objects.filter(docente=user)
+        else:
+            # Retornar un queryset vacío si no hay un usuario en la sesión
+            return Saludo.objects.none()
+
 # Vista para ver detalles de un método
 class SaludoDetailView(SessionAuthRequiredMixin, DetailView):
     model = Saludo
@@ -215,8 +227,25 @@ class SaludoDetailView(SessionAuthRequiredMixin, DetailView):
 class SaludoCreateView(SessionAuthRequiredMixin, CreateView):
     model = Saludo
     template_name = 'saludo/saludo_form.html'
-    fields = ['saludo', 'asignatura']
+    fields = ['materia', 'saludo']  # Excluir 'docente' porque se establecerá automáticamente
     success_url = reverse_lazy('saludo_list')
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+
+        # Modificar el campo "materia" para ser un ComboBox con las materias de Anexo1
+        form.fields['materia'] = forms.ChoiceField(
+            choices=[(materia, materia) for materia in Anexo1.objects.values_list('materia', flat=True).distinct()],
+            required=True,
+            widget=forms.Select(attrs={'class': 'form-control'})  # Aplicar estilo de Bootstrap
+        )
+        form.fields['saludo'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Ingrese el saludo'})
+        return form
+
+    def form_valid(self, form):
+        # Establecer el campo "docente" con el usuario de la sesión
+        form.instance.docente = self.request.session.get('user')
+        return super().form_valid(form)
 
 # Vista para actualizar un método existente
 class SaludoUpdateView(SessionAuthRequiredMixin, UpdateView):
@@ -232,46 +261,74 @@ class SaludoDeleteView(SessionAuthRequiredMixin, DeleteView):
     success_url = reverse_lazy('saludo_list')
 
 
-def anexo1_semestre_list(request, semestre):
-    anexos = Anexo1.objects.filter(semestre=semestre).order_by("fecha")
-    return render(request, "anexo/list.html", {"anexos": anexos, "semestre": semestre})
-
-class Anexo1ListView(ListView):
+class Anexo1ListView(SessionAuthRequiredMixin, ListView):
     model = Anexo1
     template_name = 'anexo/list.html'
     context_object_name = 'anexos'
 
     def get_queryset(self):
-        return Anexo1.objects.all().order_by('actividad')
+        # Obtener el 'id' desde los parámetros de la URL
+        materia = self.kwargs.get('materia')  # Usar kwargs para acceder al parámetro 'id'
 
+        if materia:
+            # Filtrar por materia si el id está presente
+            return Anexo1.objects.filter(materia=materia).order_by('actividad')
+        else:
+            # Si no hay id, devolver todos los registros
+            return Anexo1.objects.all().order_by('actividad')
+
+    
 def upload_excel(request):
     if request.method == 'POST':
         form = Anexo1Form(request.POST, request.FILES)
         if form.is_valid():
             archivo = request.FILES['archivo']
-            ruta_archivo = os.path.join('anexos', archivo.name)
 
             try:
-                # Guardar el archivo en el sistema de archivos
-                with open(os.path.join(settings.MEDIA_ROOT, ruta_archivo), 'wb+') as destino:
-                    for chunk in archivo.chunks():
-                        destino.write(chunk)
-
                 # Leer el archivo Excel
                 df = pd.read_excel(archivo)
 
-                # Validar las columnas requeridas
+                # Validar columnas requeridas
                 required_columns = [
-                    'Docente', 'Materia', 'Carrera', 'Semestre', 
+                    'Docente', 'Materia', 'Carrera', 'Semestre',
                     'Actividad', 'Tema', 'Trabajo Independiente'
                 ]
                 for column in required_columns:
                     if column not in df.columns:
                         messages.error(request, f"Error: Falta la columna '{column}' en el archivo.")
-                        return redirect('anexo1_list')
+                        return redirect('upload_excel')
 
-                # Crear registros en la base de datos
+                # Obtener el nombre de la materia de la primera fila
+                if 'Materia' not in df.columns or df.empty:
+                    messages.error(request, "Error: El archivo no contiene información de materia.")
+                    return redirect('upload_excel')
+
+                nombre_materia = df.iloc[0]['Materia'].replace(" ", "_")
+                archivo_nombre = f"{nombre_materia}.xlsx"
+
+                # Guardar el archivo con el nuevo nombre
+                ruta_archivo = os.path.join('anexos', archivo_nombre)
+                with open(os.path.join(settings.MEDIA_ROOT, ruta_archivo), 'wb+') as destino:
+                    for chunk in archivo.chunks():
+                        destino.write(chunk)
+
+                # Procesar cada fila
+                procesados = 0
+                omitidos = 0
                 for _, row in df.iterrows():
+                    # Validar duplicados basados en el contenido de cada fila
+                    existe = Anexo1.objects.filter(
+                        materia=row['Materia'],
+                        semestre=row['Semestre'],
+                        actividad=row['Actividad'],
+                        tema=row['Tema'],
+                        archivo=ruta_archivo
+                    ).exists()
+                    if existe:
+                        omitidos += 1
+                        continue
+
+                    # Crear registro si no es duplicado
                     Anexo1.objects.create(
                         docente=row['Docente'],
                         materia=row['Materia'],
@@ -282,12 +339,36 @@ def upload_excel(request):
                         trabajo_independiente=row['Trabajo Independiente'],
                         archivo=ruta_archivo
                     )
-
-                messages.success(request, "Datos cargados exitosamente.")
-                return redirect('anexo1_list')
+                    procesados += 1
+                if omitidos ==0 and procesados >0:
+                    messages.success(
+                        request,
+                        f"Archivo procesado exitosamente: {procesados} registros agregados."
+                    )
+                    return redirect('anexo1_list')
+                elif omitidos >0:
+                    messages.success(
+                        request,
+                        f"Archivo procesado exitosamente: {procesados} registros agregados, {omitidos} omitidos por duplicidad."
+                    )
+                    return redirect('upload_excel')
             except Exception as e:
                 messages.error(request, f"Error al procesar el archivo: {e}")
-                return redirect('anexo1_list')
+                return redirect('upload_excel')
     else:
         form = Anexo1Form()
-    return render(request, 'anexo/anexo.html', {'form': form})
+
+    # Obtener el usuario actual desde la sesión
+    user = request.session.get('user')
+
+    # Filtrar las asignaturas por el usuario en sesión (campo docente)
+    asignaturas_registradas = (
+        Anexo1.objects.filter(docente=user)
+        .values('materia')
+        .distinct()
+    )
+
+    return render(request, 'anexo/anexo.html', {
+        'form': form,
+        'asignaturas_registradas': asignaturas_registradas
+    })

@@ -19,7 +19,7 @@
     {% for metodo in saludo %}
     <tr>
       <th scope="row">{{ metodo.id }}</th>
-      <td>{{ metodo.nombre }}</td>
+      <td>{{ metodo.saludo }}</td>
       <td colspan="2">
         <a
           href="{% url 'saludo_detail' metodo.pk %}"

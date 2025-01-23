@@ -39,6 +39,6 @@ urlpatterns = [
     path('saludo/<int:pk>/delete/', SaludoDeleteView.as_view(), name='saludo_delete'),
 
     path("anexo/upload/", upload_excel, name="upload_excel"),
-    path('anexos/', Anexo1ListView.as_view(), name='anexo1_list'),
+    path('anexos/<str:materia>/', Anexo1ListView.as_view(), name='anexo1_list'),
 
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,9 +1,27 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h2>Subir Anexo1</h2>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %} {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Cargar</button>
-  </form>
+{% extends 'base.html' %} {% block content %} {% if messages %}
+<div class="mt-3">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h1>Cargar Archivo de Anexo 1</h1>
+
+<form method="POST" enctype="multipart/form-data">
+  {% csrf_token %} {{ form.as_p }}
+
+  <button type="submit" class="btn btn-primary">Cargar Archivo</button>
+</form>
+<br />
+<!-- ComboBox con las asignaturas registradas -->
+<div class="form-group">
+  <h1 for="materia">Materia Cargadas</h1>
+  {% for asignatura in asignaturas_registradas %}
+  <a href="{% url 'anexo1_list' materia=asignatura.materia %}"
+    >{{ asignatura.materia }}</a
+  >
+  <br />
+  {% empty %} No hay registros disponibles. {% endfor %}
 </div>
 {% endblock %}

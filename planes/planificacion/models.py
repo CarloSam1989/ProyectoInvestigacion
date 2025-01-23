@@ -1,13 +1,6 @@
 from django.db import models
-
-class Saludo(models.Model):
-    saludo = models.CharField(max_length=500)
-    asignatura = models.IntegerField()
-    docente = models.IntegerField()
-    fecha = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.saludo
+import os
+from django.utils.timezone import now
 
 class Metodos(models.Model):
     nombre = models.CharField(max_length=300)
@@ -41,6 +34,21 @@ class RecursosDidacticos(models.Model):
     def __str__(self):
         return self.nombre
     
+class Saludo(models.Model):
+    materia = models.TextField(default="Unknown")
+    saludo = models.TextField()
+    docente = models.TextField(default="Unknown")
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.saludo
+
+
+
+def unique_file_path(instance, filename):
+    # Agrega un timestamp para crear una ruta única
+    timestamp = now().strftime("%Y%m%d%H%M%S")
+    return os.path.join('anexos', f"{timestamp}_{filename}")
 
 class Anexo1(models.Model):
     docente = models.TextField()
@@ -51,10 +59,13 @@ class Anexo1(models.Model):
     tema = models.TextField()
     trabajo_independiente = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
-    archivo = models.FileField(upload_to='anexo/', null=True, blank=True)
+    archivo = models.FileField(upload_to=unique_file_path, null=True, blank=True)
 
     def __str__(self):
         return f"{self.tema} - {self.semestre}"
+
+
+    
 
 
 class Planes(models.Model):

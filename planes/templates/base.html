@@ -17,11 +17,57 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css"
+    />
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <style>
+      /* Ajustar la apariencia de los controles de paginación */
+      .dataTables_paginate {
+        margin-top: 10px;
+        text-align: center;
+      }
+
+      .dataTables_paginate .paginate_button {
+        padding: 8px 15px;
+        margin: 0 5px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        background-color: #f8f9fa;
+        color: #007bff;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .dataTables_paginate .paginate_button:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      /* Estilo para cuando se está en la página activa */
+      .dataTables_paginate .paginate_button.current {
+        background-color: #007bff;
+        color: white;
+        border: 1px solid #007bff;
+      }
+
+      /* Estilo para el input de búsqueda */
+      .dataTables_filter input {
+        border-radius: 5px;
+        padding: 5px;
+        font-size: 14px;
+      }
+      .dataTables_wrapper thead th {
+        background-color: #007bff !important; /* Azul oscuro */
+        color: white !important; /* Texto blanco */
+        text-align: center;
+      }
+    </style>
   </head>
   <body>
     <div class="d-flex flex-column min-vh-100">
@@ -134,5 +180,45 @@
       integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
       crossorigin="anonymous"
     ></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        $("#anexos-table").DataTable({
+          pageLength: 5, // Mostrar hasta 5 registros por página
+          lengthMenu: [
+            [5, 10, 25],
+            [5, 10, 25],
+          ], // Opciones de combo para la paginación
+          language: {
+            sProcessing: "Procesando...",
+            sLengthMenu: "Mostrar _MENU_ registros",
+            sZeroRecords: "No se encontraron resultados",
+            sEmptyTable: "Ningún dato disponible en esta tabla",
+            sInfo:
+              "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+            sInfoEmpty:
+              "Mostrando registros del 0 al 0 de un total de 0 registros",
+            sInfoFiltered: "(filtrado de un total de _MAX_ registros)",
+            sInfoPostFix: "",
+            sSearch: "Buscar:",
+            sUrl: "",
+            sInfoThousands: ",",
+            oPaginate: {
+              sFirst: "Primero",
+              sPrevious: "Anterior",
+              sNext: "Siguiente",
+              sLast: "Último",
+            },
+            oAria: {
+              sSortAscending:
+                ": Activar para ordenar la columna de manera ascendente",
+              sSortDescending:
+                ": Activar para ordenar la columna de manera descendente",
+            },
+          },
+        });
+      });
+    </script>
   </body>
 </html>
