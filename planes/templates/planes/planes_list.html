@@ -1,0 +1,32 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Lista de Planes</h1>
+
+{% if planes %}
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Nombre de la Actividad</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for plan in planes %}
+    <tr>
+      <td>{{ plan.actividad_docente }}</td>
+      <td>
+        <a href="{% url 'planes_detail' plan.id %}" class="btn btn-info">Ver</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="2" class="text-center">No hay planes registrados.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="alert alert-info">
+  No existen planes asociados a este docente.
+  <a href="{% url 'planes_create' %}">Crear un nuevo plan.</a>
+</div>
+{% endif %} {% endblock %}

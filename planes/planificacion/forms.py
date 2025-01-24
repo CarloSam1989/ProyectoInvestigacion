@@ -1,3 +1,4 @@
+import json
 from django import forms
 from .models import *
 
@@ -51,7 +52,6 @@ class FormasEnseForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
 
-
 class SaludoForm(forms.ModelForm):
     class Meta:
         model = Saludo
@@ -66,4 +66,103 @@ class SaludoForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el saludo'})
     )
 
+class PlanesForm(forms.ModelForm):
+    plan_nombre = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    metodo = forms.ModelChoiceField(
+        queryset=Metodos.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    tecnica_cierre = forms.ModelChoiceField(
+        queryset=TecnicaCierre.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    forma_ense = forms.ModelChoiceField(
+        queryset=FormasEnse.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    recurso_didactico = forms.ModelMultipleChoiceField(
+        queryset=RecursosDidacticos.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
+    )
+  
+    numero_actividad = forms.ModelMultipleChoiceField(
+        queryset=Anexo1.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+    )
    
+    actividad_docente = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    asistencia = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    trabajo_fecha = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    motivacion = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+    )
+    objetivo = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+    )
+    desarrollo_clase = forms.JSONField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5})
+    )
+    saludo = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    conclusion = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    analisis_tecnica_cierre = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
+    chequeo_trabajo = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
+    evaluacion_aprendizaje = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 4})
+    )
+    evaluacion = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
+    trabajo_independiente = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
+    bibliografia = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    )
+    desarrollo_clase = forms.CharField(
+        widget=forms.HiddenInput(),  # Campo oculto que almacena el JSON final
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Personalizar las opciones para número de actividad
+        self.fields['numero_actividad'].queryset = Anexo1.objects.all()
+        self.fields['numero_actividad'].widget.choices = [
+            (obj.pk, f"{obj.actividad} - {obj.tema}") for obj in self.fields['numero_actividad'].queryset
+        ]
+
+    class Meta:
+        model = Planes
+        fields = [
+            'plan_nombre','metodo', 'tecnica_cierre', 'forma_ense', 'recurso_didactico', 
+            'numero_actividad', 'actividad_docente', 'asistencia', 'trabajo_independiente',
+            'trabajo_fecha','bibliografia', 'motivacion', 'objetivo','saludo','chequeo_trabajo',
+            'desarrollo_clase', 'evaluacion_aprendizaje','conclusion', 'evaluacion','analisis_tecnica_cierre'
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        desarrollo_clase_json = cleaned_data.get('desarrollo_clase_json')
+        
+        if desarrollo_clase_json:
+            try:
+                cleaned_data['desarrollo_clase'] = json.loads(desarrollo_clase_json)
+            except json.JSONDecodeError:
+                raise forms.ValidationError("Error procesando los datos de desarrollo de clase.")
+        return cleaned_data

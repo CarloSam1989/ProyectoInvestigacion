@@ -277,6 +277,78 @@ class Anexo1ListView(SessionAuthRequiredMixin, ListView):
             # Si no hay id, devolver todos los registros
             return Anexo1.objects.all().order_by('actividad')
 
+# Vista para revisar si existen planes para el docente y permitir la creación de un nuevo plan
+class PlanesListView(SessionAuthRequiredMixin, ListView):
+    model = Planes
+    template_name = 'planes/planes_list.html'
+    context_object_name = 'planes'
+
+    def get_queryset(self):
+        # Obtener el usuario de la sesión
+        user = self.request.session.get('user')
+
+        if user:
+            # Buscar planes donde el docente coincide con el usuario en sesión
+            planes = Planes.objects.filter(anexo__docente=user)
+            return planes
+        else:
+            return Planes.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.session.get('user')
+        if user:
+            planes = Planes.objects.filter(anexo__docente=user)
+            if not planes:
+                messages.info(self.request, "No existen planes asociados a este docente. Puedes crear uno nuevo.")
+        return context
+
+
+# Vista para crear un nuevo Plan
+def crear_plan(request):
+    # Obtener el docente desde la sesión
+    docente = request.session.get('user')
+
+    if not docente:
+        messages.error(request, "No se encontró información del docente.")
+        return redirect('planes_list')
+
+    if request.method == 'POST':
+        form = PlanesForm(request.POST)
+        if form.is_valid():
+            plan = form.save(commit=False)
+            
+            # Asociar automáticamente la actividad seleccionada desde Anexo1
+            actividad_id = request.POST.get('numero_actividad')
+            try:
+                actividad_anexo = Anexo1.objects.get(id=actividad_id, docente=docente)
+                plan.anexo = actividad_anexo
+                plan.numero_actividad = actividad_anexo.actividad
+                plan.trabajo_independiente = actividad_anexo.trabajo_independiente
+                plan.save()
+
+                # Guardar los recursos seleccionados
+                recursos = form.cleaned_data['recurso_didactico']
+                plan.recurso_didactico.set(recursos)
+
+                messages.success(request, "Plan creado exitosamente.")
+                return redirect('planes_list')
+            except Anexo1.DoesNotExist:
+                messages.error(request, "La actividad seleccionada no es válida.")
+    else:
+        # Filtrar actividades disponibles de Anexo1
+        actividades_disponibles = Anexo1.objects.filter(docente=docente).exclude(
+            id__in=Planes.objects.values_list('anexo_id', flat=True)
+        )
+        form = PlanesForm()
+        form.fields['numero_actividad'].choices = [
+            (actividad.id, actividad.actividad+" - "+actividad.tema) for actividad in actividades_disponibles
+        ]
+       
+
+    return render(request, 'planes/planes_form.html', {
+        'form': form,
+    })
     
 def upload_excel(request):
     if request.method == 'POST':

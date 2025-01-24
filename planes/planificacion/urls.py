@@ -41,4 +41,7 @@ urlpatterns = [
     path("anexo/upload/", upload_excel, name="upload_excel"),
     path('anexos/<str:materia>/', Anexo1ListView.as_view(), name='anexo1_list'),
 
+    path('planes/', PlanesListView.as_view(), name='planes_list'),
+    path('planes/create/', crear_plan, name='planes_create'),
+
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

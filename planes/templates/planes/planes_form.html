@@ -1,0 +1,237 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Crear Nuevo Plan</h1>
+
+<form method="POST">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label for="{{ form.plan_nombre.id_for_label }}" class="form-label"
+      >NOMBRE DE PLAN</label
+    >
+    {{ form.plan_nombre }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.numero_actividad.id_for_label }}" class="form-label">
+      NÚMERO DE ACTIVIDAD
+    </label>
+    <div class="form-check">
+      <div class="row">
+        {% for checkbox in form.numero_actividad %}
+        <div class="form-check form-check-inline col-auto">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            name="{{ checkbox.name }}"
+            value="{{ checkbox.choice_value }}"
+            id="{{ checkbox.id_for_label }}"
+            {%
+            if
+            checkbox.value
+            %}checked{%
+            endif
+            %}
+          />
+          <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+            {{ checkbox.choice_label }}
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.actividad_docente.id_for_label }}" class="form-label"
+      >ACTIVIDAD DOCENTE</label
+    >
+    {{ form.actividad_docente }}
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label for="{{ form.metodo.id_for_label }}" class="form-label"
+          >MÉTODO</label
+        >
+        {{ form.metodo }}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label for="{{ form.forma_ense.id_for_label }}" class="form-label"
+          >FORMA DE ENSEÑANZA</label
+        >
+        {{ form.forma_ense }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="mb-3">
+      <label for="{{ form.recurso_didactico.id_for_label }}" class="form-label"
+        >RECURSOS DIDÁCTICOS PARA LAS CLASE:
+      </label>
+      <div class="form-check">
+        {% for recurso in form.recurso_didactico %}
+        <div class="form-check form-check-inline col-auto">
+          <div class="form-check">
+            <!-- Aquí es donde se renderizan los checkboxes -->
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="{{ recurso.name }}"
+              value="{{ recurso.choice_value }}"
+            />
+            <label class="form-check-label" for="{{ recurso.id_for_label }}">
+              {{ recurso.choice_label }}
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.saludo.id_for_label }}" class="form-label"
+      >Saludo y organización de la clase</label
+    >
+    {{ form.saludo }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.asistencia.id_for_label }}" class="form-label"
+      >Análisis de la asistencia a clases</label
+    >
+    {{ form.asistencia }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.asistencia.id_for_label }}" class="form-label"
+      >Trabajo con la fecha</label
+    >
+    {{ form.trabajo_fecha }}
+  </div>
+  <div class="mb-3">
+    <label
+      for="{{ form.analisis_tecnica_cierre.id_for_label }}"
+      class="form-label"
+      >Análisis de la Técnica de cierre</label
+    >
+    {{ form.analisis_tecnica_cierre }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.chequeo_trabajo.id_for_label }}" class="form-label"
+      >Chequeo del trabajo independiente</label
+    >
+    {{ form.chequeo_trabajo }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.motivacion.id_for_label }}" class="form-label"
+      >Motivación a la clase</label
+    >
+    {{ form.motivacion }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.objetivo.id_for_label }}" class="form-label"
+      >Anuncio del objetivo de la clase</label
+    >
+    {{ form.objetivo }}
+  </div>
+  <div class="mb-3">
+    <label for="Desarrollo de la Clase" class="form-label">DESARROLLO</label>
+    <div id="desarrollo-clase-container">
+      <!-- Contenedor dinámico para agregar secciones -->
+    </div>
+    <button
+      type="button"
+      class="btn btn-primary"
+      onclick="addDesarrolloClase()"
+    >
+      Agregar Sección
+    </button>
+    <input
+      type="hidden"
+      name="desarrollo_clase_json"
+      id="desarrollo-clase-json"
+    />
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.conclusion.id_for_label }}" class="form-label"
+      >Conclusiones de la clase</label
+    >
+    {{ form.conclusion }}
+  </div>
+
+  <div class="mb-3">
+    <label
+      for="{{ form.evaluacion_aprendizaje.id_for_label }}"
+      class="form-label"
+      >Evaluación del aprendizaje en la clase.</label
+    >
+    {{ form.evaluacion_aprendizaje }}
+  </div>
+  <div class="mb-3">
+    <label
+      for="{{ form.trabajo_independiente.id_for_label }}"
+      class="form-label"
+      >Orientación del trabajo independiente.</label
+    >
+    {{ form.trabajo_independiente }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.tecnica_cierre.id_for_label }}" class="form-label"
+      >Aplicación de técnica de cierre</label
+    >
+    {{ form.tecnica_cierre }}
+  </div>
+  <div class="mb-3">
+    <label for="{{ form.bibliografia.id_for_label }}" class="form-label"
+      >Bibliografía</label
+    >
+    {{ form.bibliografia }}
+  </div>
+
+  <button type="submit" class="btn btn-primary">Guardar Plan</button>
+  <a href="{% url 'planes_list' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+<script>
+  let desarrolloClaseData = [];
+
+  function addDesarrolloClase() {
+    const container = document.getElementById("desarrollo-clase-container");
+    const index = desarrolloClaseData.length;
+
+    const entry = `
+      <div class="card mb-3 p-3" id="desarrollo-entry-${index}">
+        <div class="mb-3">
+          <label for="texto-${index}" class="form-label">Texto</label>
+          <textarea class="form-control" id="texto-${index}" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="imagen-${index}" class="form-label">Imagen</label>
+          <input type="file" class="form-control" id="imagen-${index}">
+        </div>
+        <button type="button" class="btn btn-danger" onclick="removeDesarrolloClase(${index})">Eliminar</button>
+      </div>
+    `;
+    container.insertAdjacentHTML("beforeend", entry);
+    desarrolloClaseData.push({ texto: "", imagen: "" });
+  }
+
+  function removeDesarrolloClase(index) {
+    document.getElementById(`desarrollo-entry-${index}`).remove();
+    desarrolloClaseData[index] = null; // Mantener índice coherente
+  }
+
+  document.querySelector("form").addEventListener("submit", function (e) {
+    const container = document.getElementById("desarrollo-clase-container");
+    const entries = container.querySelectorAll(".card");
+
+    desarrolloClaseData = Array.from(entries)
+      .map((entry, index) => {
+        return {
+          texto: entry.querySelector(`#texto-${index}`).value,
+          imagen: entry.querySelector(`#imagen-${index}`).files[0]?.name || "",
+        };
+      })
+      .filter((entry) => entry != null);
+
+    document.getElementById("desarrollo-clase-json").value =
+      JSON.stringify(desarrolloClaseData);
+  });
+</script>
+{% endblock %}
