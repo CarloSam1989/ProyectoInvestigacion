@@ -325,9 +325,13 @@ def crear_plan(request):
                 plan.anexo = actividad_anexo
                 plan.numero_actividad = actividad_anexo.actividad
                 plan.trabajo_independiente = actividad_anexo.trabajo_independiente
+                
+                # Almacenar el desarrollo de la clase desde el formulario
+                plan.desarrollo_clase = request.POST.get('desarrollo_clase')  # CKEditor guarda HTML
+                
                 plan.save()
 
-                # Guardar los recursos seleccionados
+                # Guardar los recursos seleccionados (ManyToManyField)
                 recursos = form.cleaned_data['recurso_didactico']
                 plan.recurso_didactico.set(recursos)
 
@@ -335,6 +339,9 @@ def crear_plan(request):
                 return redirect('planes_list')
             except Anexo1.DoesNotExist:
                 messages.error(request, "La actividad seleccionada no es válida.")
+        else:
+            print(form.errors)
+            messages.error(request, "Por favor, corrija los errores en el formulario.")
     else:
         # Filtrar actividades disponibles de Anexo1
         actividades_disponibles = Anexo1.objects.filter(docente=docente).exclude(
@@ -342,14 +349,13 @@ def crear_plan(request):
         )
         form = PlanesForm()
         form.fields['numero_actividad'].choices = [
-            (actividad.id, actividad.actividad+" - "+actividad.tema) for actividad in actividades_disponibles
+            (actividad.id, f"{actividad.actividad} - {actividad.tema}") for actividad in actividades_disponibles
         ]
-       
 
     return render(request, 'planes/planes_form.html', {
         'form': form,
     })
-    
+
 def upload_excel(request):
     if request.method == 'POST':
         form = Anexo1Form(request.POST, request.FILES)

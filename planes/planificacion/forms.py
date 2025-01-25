@@ -83,7 +83,7 @@ class PlanesForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     recurso_didactico = forms.ModelMultipleChoiceField(
-        queryset=RecursosDidacticos.objects.all(),
+        queryset=RecursosDidacticos.objects.all(),  # Asegúrate de que no está vacío
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
     )
   
@@ -102,13 +102,10 @@ class PlanesForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     motivacion = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
     )
     objetivo = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
-    )
-    desarrollo_clase = forms.JSONField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5})
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
     )
     saludo = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control'})
@@ -116,28 +113,27 @@ class PlanesForm(forms.ModelForm):
     conclusion = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-    analisis_tecnica_cierre = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+    an_tecnica_cierre = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
     )
     chequeo_trabajo = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
     )
     evaluacion_aprendizaje = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 4})
-    )
-    evaluacion = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 2})
     )
     trabajo_independiente = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 2})
     )
     bibliografia = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
     )
     desarrollo_clase = forms.CharField(
-        widget=forms.HiddenInput(),  # Campo oculto que almacena el JSON final
-        required=False
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 8})
     )
+    fecha_ejecucion= forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control','type': 'date'}))
+    
+  
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -150,10 +146,10 @@ class PlanesForm(forms.ModelForm):
     class Meta:
         model = Planes
         fields = [
-            'plan_nombre','metodo', 'tecnica_cierre', 'forma_ense', 'recurso_didactico', 
+            'plan_nombre','metodo', 'fecha_ejecucion','tecnica_cierre', 'forma_ense', 'recurso_didactico', 
             'numero_actividad', 'actividad_docente', 'asistencia', 'trabajo_independiente',
             'trabajo_fecha','bibliografia', 'motivacion', 'objetivo','saludo','chequeo_trabajo',
-            'desarrollo_clase', 'evaluacion_aprendizaje','conclusion', 'evaluacion','analisis_tecnica_cierre'
+            'desarrollo_clase', 'evaluacion_aprendizaje','conclusion', 'an_tecnica_cierre'
         ]
 
     def clean(self):
