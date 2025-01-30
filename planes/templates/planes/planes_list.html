@@ -17,9 +17,14 @@
   <tbody>
     {% for plan in planes %}
     <tr>
-      <td>{{ plan.actividad_docente }}</td>
+      <td>{{ plan.plan_nombre }}</td>
       <td>
-        <a href="" class="btn btn-info">Ver</a>
+        <a
+          href="{% url 'plan_pdf' plan.id %}"
+          target="_blank"
+          class="btn btn-info"
+          >Ver</a
+        >
       </td>
     </tr>
     {% empty %}

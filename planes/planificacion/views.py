@@ -6,10 +6,21 @@ from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from .models import *
 from .forms import *
-from collections import defaultdict
+from django.http import HttpResponse
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Table, TableStyle, Spacer, Image
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+
+# Registrar la fuente Arial
+pdfmetrics.registerFont(TTFont('Arial', 'static/font/Arial.ttf'))
+pdfmetrics.registerFont(TTFont('Arial-Bold', 'static/font/Arial_Bold.ttf'))
 
 
 USUARIOS = {
@@ -277,7 +288,6 @@ class Anexo1ListView(SessionAuthRequiredMixin, ListView):
             # Si no hay id, devolver todos los registros
             return Anexo1.objects.all().order_by('actividad')
 
-# Vista para revisar si existen planes para el docente y permitir la creación de un nuevo plan
 class PlanesListView(SessionAuthRequiredMixin, ListView):
     model = Planes
     template_name = 'planes/planes_list.html'
@@ -450,3 +460,177 @@ def upload_excel(request):
         'form': form,
         'asignaturas_registradas': asignaturas_registradas
     })
+
+def vista_plan_detalle(request, plan_id):
+    plan = get_object_or_404(Planes, id=plan_id)
+    return render(request, "planes/reporte_planes.html", {"plan": plan})
+
+
+ENCABEZADO_IMG = "media/img/encabezado.jpg"
+PIE_IMG = "media/img/pie.jpg"
+
+def encabezado(canvas, doc):
+    """Dibuja el encabezado en cada página."""
+    canvas.saveState()
+    if os.path.exists(ENCABEZADO_IMG):
+        canvas.drawImage(ENCABEZADO_IMG, 0, 740, width=620, height=60)
+    canvas.restoreState()
+
+def pie_pagina(canvas, doc):
+    """Dibuja el pie de página en cada página."""
+    canvas.saveState()
+    if os.path.exists(PIE_IMG):
+        canvas.drawImage(PIE_IMG, 0, 0, width=620, height=50)
+    canvas.restoreState()
+
+def generar_plan_pdf(request, plan_id):
+    plan = get_object_or_404(Planes, id=plan_id)
+    recursos = plan.recurso_didactico.all()
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="plan_{plan_id}.pdf"'
+
+    doc = BaseDocTemplate(response, pagesize=letter)
+
+    # Definir marco de contenido (deja espacio para encabezado y pie)
+    frame = Frame(40, 80, 500, 650, id="normal")
+
+    # Agregar plantilla con encabezado y pie
+    plantilla = PageTemplate(id="plantilla", frames=frame, onPage=encabezado, onPageEnd=pie_pagina)
+    doc.addPageTemplates([plantilla])
+
+    elementos = []
+
+    # Estilos
+    estilos = getSampleStyleSheet()
+    estilos.add(ParagraphStyle(name="Arial11", fontName="Arial", fontSize=11, leading=14))
+    estilos.add(ParagraphStyle(name="Sangria",parent=estilos["Normal"],firstLineIndent=30))
+    estilos.add(ParagraphStyle(name="Arial11b", fontName="Arial-Bold", fontSize=11, leading=14))
+    estilos.add(ParagraphStyle(name="Titulo12", fontName="Arial-Bold", fontSize=11, leading=16))
+    estilos.add(ParagraphStyle(name="TituloCentrado", fontName="Arial-Bold", fontSize=11, leading=16, alignment=TA_CENTER))
+
+
+    # Título
+    elementos.append(Spacer(1, 10))
+    elementos.append(Paragraph(f"PLAN DE CLASES N°: {plan.plan_nombre}", estilos["TituloCentrado"]))
+    elementos.append(Paragraph(f"CARRERA: {plan.anexo.carrera.upper()}", estilos["TituloCentrado"]))
+    elementos.append(Paragraph(f"ASIGNATURA: {plan.anexo.materia.upper()}", estilos["TituloCentrado"]))
+    elementos.append(Spacer(1, 20))
+    docente = Paragraph(
+        f"<u><b>DOCENTE:</b></u> {plan.anexo.docente.upper()}",
+        estilos["Normal"]
+    )
+    elementos.append(docente)
+    num_act = Paragraph(
+        f"<b><u>NÚMERO DE ACTIVIDAD:</u></b> {plan.anexo.actividad}",
+        estilos["Normal"]
+    )
+    elementos.append(num_act)
+    act_doc = Paragraph(
+        f"<b><u>ACTIVIDAD DOCENTE:</u></b> {plan.actividad_docente}",
+        estilos["Normal"]
+    )
+    metodo = Paragraph(
+        f"<u><b>MÉTODO:</b></u> {plan.metodo.nombre.upper()}",
+        estilos["Normal"]
+    )
+    elementos.append(metodo)
+    forma_ense = Paragraph(
+        f"<b><u>FORMA DE ENSEÑANZA:</u></b> {plan.forma_ense.nombre.upper()}",
+        estilos["Normal"]
+    )
+    elementos.append(forma_ense)
+    recursos_texto = "<b><u>RECURSOS DIDÁCTICOS:</u></b> "
+    for recurso in recursos:
+        recursos_texto += f"{recurso.nombre.upper()}, "
+
+    # Quitar la última coma y espacio
+    recursos_texto = recursos_texto.rstrip(", ")
+    # Crear el párrafo con los recursos didácticos
+    recursos_parrafo = Paragraph(recursos_texto, estilos["Normal"])
+    # Agregar ambos párrafos a los elementos del PDF
+    elementos.append(recursos_parrafo)
+    elementos.append(Spacer(1, 10))
+    introduccion = Paragraph(
+        f"<b>I. <u> INTRODUCCIÓN</u></b>",
+        estilos["Sangria"]
+    )
+    elementos.append(introduccion)
+    elementos.append(Paragraph("I.1. Saludo y organización de la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.saludo}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.2. Análisis de la asistencia a clases. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.asistencia}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.3. Trabajo con la fecha. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.trabajo_fecha}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.4. Análisis de la técnica de cierre. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.an_tecnica_cierre}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.5. Chequeo del trabajo independiente. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.trabajo_independiente}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.6. Motivación a la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.motivacion}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.7. Anuncio del tema de la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.anexo.tema}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("I.8. Anuncio del objetivo de la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.objetivo}", estilos["Normal"]))
+    elementos.append(Spacer(1, 10))
+    desarrollo = Paragraph(
+        f"<b>II. <u> DESARROLLO</u></b>",
+        estilos["Sangria"]
+    )
+    elementos.append(desarrollo)
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph(f"{plan.desarrollo_clase}", estilos["Normal"]))
+    elementos.append(Spacer(1, 10))
+    desarrollo = Paragraph(
+        f"<b>III. <u> CONCLUSIONES GENERALES</u></b>",
+        estilos["Sangria"]
+    )
+    elementos.append(desarrollo)
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("III.1. Conclusiones de la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.conclusion}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("III.2. Evaluación del aprendizaje en la clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.evaluacion_aprendizaje}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("III.3. Orientación del trabajo independiente. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.anexo.trabajo_independiente}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("III.4. Anuncio del tema de la próxima clase. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.anexo.trabajo_independiente}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("III.5. Aplicación de técnica de cierre. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.tecnica_cierre.nombre}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5))
+    elementos.append(Paragraph("Bibliografía. ", estilos["Titulo12"]))
+    elementos.append(Paragraph(f"{plan.bibliografia}", estilos["Normal"]))
+    elementos.append(Spacer(1, 50))
+    datos = [
+        ["Elaborado Por:", "Revisado Por:"],  # Primera fila vacía
+        ["DOCENTE", "COORDINADOR DE CARRERA"]  # Segunda fila con texto
+    ]
+    # Definir los anchos de columnas y alturas de filas
+    ancho_columnas = [150, 150]  # Ambas columnas de 150 puntos
+    alto_filas = [20, 80]  # Primera fila más grande (80 puntos), segunda fila más pequeña (40 puntos)
+    # Crear la tabla con tamaños personalizados
+    tabla = Table(datos, colWidths=ancho_columnas, rowHeights=alto_filas)
+    # Aplicar estilos a la tabla
+    tabla.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 1, colors.black),  # Bordes de la tabla
+        ("ALIGN", (0, 1), (-1, -1), "CENTER"),  # Alinear todo al centro excepto la primera fila
+        ("ALIGN", (0, 0), (-1, 0), "LEFT"),  # Alinear primera fila a la izquierda
+        ("VALIGN", (0, 0), (-1, 0), "BOTTOM"),  # Alinear la primera fila en la parte inferior
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),  # Toda la tabla en negrita
+    ]))
+    elementos.append(tabla)
+    elementos.append(Spacer(1, 20))
+    # Construir PDF
+    doc.build(elementos)
+
+    return response

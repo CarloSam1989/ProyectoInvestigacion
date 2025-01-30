@@ -44,4 +44,7 @@ urlpatterns = [
     path('planes/', PlanesListView.as_view(), name='planes_list'),
     path('planes/create/', crear_plan, name='planes_create'),
 
+    path("plan/<int:plan_id>/", vista_plan_detalle, name="detalle_plan"),
+    path("plan/<int:plan_id>/pdf/", generar_plan_pdf, name="plan_pdf"),
+
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

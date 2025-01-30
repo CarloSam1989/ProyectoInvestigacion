@@ -1,0 +1,50 @@
+{% extends 'base.html' %} {% block content %}
+<h2>Detalle del Plan: {{ plan.plan_nombre }}</h2>
+
+<table>
+  <tr>
+    <th>Método</th>
+    <td>{{ plan.metodo.nombre }}</td>
+  </tr>
+  <tr>
+    <th>Técnica de Cierre</th>
+    <td>{{ plan.tecnica_cierre.nombre }}</td>
+  </tr>
+  <tr>
+    <th>Forma de Enseñanza</th>
+    <td>{{ plan.forma_ense.nombre }}</td>
+  </tr>
+  <tr>
+    <th>Actividad Docente</th>
+    <td>{{ plan.actividad_docente }}</td>
+  </tr>
+  <tr>
+    <th>Tema</th>
+    <td>{{ plan.anexo.tema }}</td>
+  </tr>
+  <tr>
+    <th>Objetivo</th>
+    <td>{{ plan.objetivo }}</td>
+  </tr>
+  <tr>
+    <th>Motivación</th>
+    <td>{{ plan.motivacion }}</td>
+  </tr>
+  <tr>
+    <th>Evaluación del Aprendizaje</th>
+    <td>{{ plan.evaluacion_aprendizaje }}</td>
+  </tr>
+  <tr>
+    <th>Fecha de Creación</th>
+    <td>{{ plan.fecha_creacion }}</td>
+  </tr>
+  <tr>
+    <th>Fecha de Ejecución</th>
+    <td>{{ plan.fecha_ejecucion|default:"N/A" }}</td>
+  </tr>
+</table>
+
+<br />
+<a href="{% url 'plan_pdf' plan.id %}" class="button">Descargar PDF</a>
+
+{% endblock %}
