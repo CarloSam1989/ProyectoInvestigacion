@@ -42,7 +42,7 @@ urlpatterns = [
     path('anexos/<str:materia>/', Anexo1ListView.as_view(), name='anexo1_list'),
 
     path('planes/', PlanesListView.as_view(), name='planes_list'),
-    path('planes/create/', crear_plan, name='planes_create'),
+    path('planes/create/<str:materia>/', crear_plan, name='planes_create'),
 
     path("plan/<int:plan_id>/", vista_plan_detalle, name="detalle_plan"),
     path("plan/<int:plan_id>/pdf/", generar_plan_pdf, name="plan_pdf"),

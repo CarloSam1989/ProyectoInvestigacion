@@ -87,7 +87,7 @@ WSGI_APPLICATION = 'planes.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'planes',
+        'NAME': 'planificacion',
         'USER': 'postgres',
         'PASSWORD': 'root',
         'HOST': 'localhost',  # Cambia si usas un host remoto

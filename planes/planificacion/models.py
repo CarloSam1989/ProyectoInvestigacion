@@ -53,30 +53,30 @@ class Anexo1(models.Model):
     materia = models.TextField()
     carrera = models.TextField()
     semestre = models.CharField(max_length=10, default="Unknown")
-    actividad = models.CharField(max_length=300)
+    numero_actividad = models.IntegerField(default=0)
     tema = models.TextField()
     trabajo_independiente = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
     archivo = models.FileField(upload_to=unique_file_path, null=True, blank=True)
    
-
+    class Meta:
+        app_label = 'planificacion'
     def __str__(self):
-        return f"{self.tema} - {self.semestre}"
+        return f"{self.numero_actividad} - {self.tema}"
 
 class Planes(models.Model):
     metodo = models.ForeignKey(Metodos, on_delete=models.CASCADE)
     plan_nombre = models.TextField(null=True, blank=True)
-    tecnica_cierre = models.ForeignKey(TecnicaCierre, on_delete=models.CASCADE)
-    forma_ense = models.ForeignKey(FormasEnse, on_delete=models.CASCADE)
+    tecnica_cierre = models.ManyToManyField(TecnicaCierre, related_name='planes')
+    forma_ense = models.ManyToManyField(FormasEnse)
     recurso_didactico = models.ManyToManyField(RecursosDidacticos)
-    anexo = models.ForeignKey(Anexo1, on_delete=models.CASCADE)
     saludo = models.TextField(null=True, blank=True)
     bibliografia = models.TextField(null=True, blank=True)
     evaluacion_aprendizaje = models.TextField(null=True, blank=True)
     an_tecnica_cierre = models.TextField(null=True, blank=True)
     chequeo_trabajo = models.TextField(null=True, blank=True)
     trabajo_independiente = models.TextField(null=True, blank=True)
-    numero_actividad = models.CharField(max_length=100)
+    numero_actividad = models.ManyToManyField(Anexo1, related_name='planes')
     actividad_docente = models.CharField(max_length=300)
     asistencia = models.TextField(null=True, blank=True)
     trabajo_fecha = models.CharField(max_length=400, null=True, blank=True)

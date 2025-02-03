@@ -74,13 +74,13 @@ class PlanesForm(forms.ModelForm):
         queryset=Metodos.objects.all(),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    tecnica_cierre = forms.ModelChoiceField(
+    tecnica_cierre = forms.ModelMultipleChoiceField(
         queryset=TecnicaCierre.objects.all(),
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
     )
-    forma_ense = forms.ModelChoiceField(
+    forma_ense = forms.ModelMultipleChoiceField(
         queryset=FormasEnse.objects.all(),
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
     )
     recurso_didactico = forms.ModelMultipleChoiceField(
         queryset=RecursosDidacticos.objects.all(),  # Asegúrate de que no está vacío
@@ -140,7 +140,7 @@ class PlanesForm(forms.ModelForm):
         # Personalizar las opciones para número de actividad
         self.fields['numero_actividad'].queryset = Anexo1.objects.all()
         self.fields['numero_actividad'].widget.choices = [
-            (obj.pk, f"{obj.actividad} - {obj.tema}") for obj in self.fields['numero_actividad'].queryset
+            (obj.pk, f"{obj.numero_actividad} + {obj.semestre}") for obj in self.fields['numero_actividad'].queryset
         ]
 
     class Meta:

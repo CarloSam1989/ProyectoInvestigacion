@@ -29,16 +29,14 @@
       <th scope="col">Actividad</th>
       <th scope="col">Tema</th>
       <th scope="col">Trabajo Independiente</th>
-      <th scope="col">Acciones</th>
     </tr>
   </thead>
   <tbody>
     {% for anexo in anexos %}
     <tr>
-      <td scope="row">{{ anexo.actividad }}</td>
+      <td scope="row">{{ anexo.numero_actividad }}</td>
       <td>{{ anexo.tema }}</td>
       <td>{{ anexo.trabajo_independiente }}</td>
-      <td></td>
     </tr>
     {% empty %}
     <tr>

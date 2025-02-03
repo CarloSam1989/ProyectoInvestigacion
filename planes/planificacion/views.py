@@ -17,6 +17,8 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
+from collections import defaultdict
+
 
 # Registrar la fuente Arial
 pdfmetrics.registerFont(TTFont('Arial', 'static/font/Arial.ttf'))
@@ -26,6 +28,7 @@ pdfmetrics.registerFont(TTFont('Arial-Bold', 'static/font/Arial_Bold.ttf'))
 USUARIOS = {
     "admin": "admin",
     "user1": "Carlos",
+    "Ing. Carlos Guzman": "Carlos",
     "user2": "Jorge"
 }
 
@@ -64,7 +67,8 @@ class SessionAuthRequiredMixin:
         if "user" not in request.session:
             return redirect(f"/?next={request.path}")
         return super().dispatch(request, *args, **kwargs)
-    
+
+   
 #METODOS
 
 # Vista para listar métodos
@@ -246,9 +250,9 @@ class SaludoCreateView(SessionAuthRequiredMixin, CreateView):
 
         # Modificar el campo "materia" para ser un ComboBox con las materias de Anexo1
         form.fields['materia'] = forms.ChoiceField(
-            choices=[(materia, materia) for materia in Anexo1.objects.values_list('materia', flat=True).distinct()],
-            required=True,
-            widget=forms.Select(attrs={'class': 'form-control'})  # Aplicar estilo de Bootstrap
+           choices=[(materia, materia) for materia in Anexo1.objects.values_list('materia', flat=True).distinct()],
+           required=True,
+           widget=forms.Select(attrs={'class': 'form-control'})  # Aplicar estilo de Bootstrap
         )
         form.fields['saludo'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Ingrese el saludo'})
         return form
@@ -283,10 +287,11 @@ class Anexo1ListView(SessionAuthRequiredMixin, ListView):
 
         if materia:
             # Filtrar por materia si el id está presente
-            return Anexo1.objects.filter(materia=materia).order_by('actividad')
+            return Anexo1.objects.filter(materia=materia).order_by('numero_actividad')
         else:
             # Si no hay id, devolver todos los registros
-            return Anexo1.objects.all().order_by('actividad')
+            return Anexo1.objects.all().order_by('numero_actividad')
+
 
 class PlanesListView(SessionAuthRequiredMixin, ListView):
     model = Planes
@@ -294,77 +299,94 @@ class PlanesListView(SessionAuthRequiredMixin, ListView):
     context_object_name = 'planes'
 
     def get_queryset(self):
-        # Obtener el usuario de la sesión
         user = self.request.session.get('user')
 
         if user:
-            # Buscar planes donde el docente coincide con el usuario en sesión
-            planes = Planes.objects.filter(anexo__docente=user)
-            return planes
-        else:
-            return Planes.objects.none()
+            return Planes.objects.filter(numero_actividad__docente=user).distinct().prefetch_related('numero_actividad')
+
+        return Planes.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.session.get('user')
+
         if user:
-            planes = Planes.objects.filter(anexo__docente=user)
-            if not planes:
-                messages.info(self.request, "No existen planes asociados a este docente. Puedes crear uno nuevo.")
+            # Obtener todas las materias donde el docente tiene actividades en Anexo1
+            todas_las_materias = (
+                Anexo1.objects.filter(docente=user)
+                .values_list('materia', flat=True)
+                .distinct()
+            )
+
+            # Agrupar planes por materia
+            planes_por_materia = defaultdict(list)
+            for plan in context['planes']:
+                # Asegurarse de que el plan tenga actividades y obtener la materia correctamente
+                if plan.numero_actividad.exists():
+                    materia = plan.numero_actividad.first().materia
+                    planes_por_materia[materia].append(plan)
+
+            context['materias_disponibles'] = todas_las_materias
+            context['planes_por_materia'] = dict(planes_por_materia)  # Cambié de 'planes_por_materia' a 'planes_materia' en la plantilla
+            context['user'] = user  # Agregar información del usuario
+
         return context
 
-
-# Vista para crear un nuevo Plan
-def crear_plan(request):
+def crear_plan(request, materia):
     # Obtener el docente desde la sesión
     docente = request.session.get('user')
-
     if not docente:
         messages.error(request, "No se encontró información del docente.")
         return redirect('planes_list')
 
+    # Obtener actividades disponibles para la materia seleccionada por el docente
+    actividades_disponibles = Anexo1.objects.filter(docente=docente, materia=materia)
+    if not actividades_disponibles.exists():
+        messages.error(request, "No hay actividades disponibles para esta materia.")
+        return redirect('planes_list')
+
+    # Obtener el último plan creado para la materia y calcular el siguiente número
+    ultimo_plan = Planes.objects.filter(numero_actividad__materia=materia).order_by('-id').first()
+    nuevo_numero_plan = f"{int(ultimo_plan.plan_nombre.split()[-1]) + 1}" if ultimo_plan else "1"
+    
     if request.method == 'POST':
         form = PlanesForm(request.POST)
         if form.is_valid():
             plan = form.save(commit=False)
-            
-            # Asociar automáticamente la actividad seleccionada desde Anexo1
-            actividad_id = request.POST.get('numero_actividad')
-            try:
-                actividad_anexo = Anexo1.objects.get(id=actividad_id, docente=docente)
-                plan.anexo = actividad_anexo
-                plan.numero_actividad = actividad_anexo.actividad
-                plan.trabajo_independiente = actividad_anexo.trabajo_independiente
-                
-                # Almacenar el desarrollo de la clase desde el formulario
-                plan.desarrollo_clase = request.POST.get('desarrollo_clase')  # CKEditor guarda HTML
-                
-                plan.save()
+            plan.plan_nombre = nuevo_numero_plan  # Asignar número de plan automáticamente
+            plan.desarrollo_clase = request.POST.get('desarrollo_clase')  # CKEditor guarda HTML
+            plan.save()
 
-                # Guardar los recursos seleccionados (ManyToManyField)
-                recursos = form.cleaned_data['recurso_didactico']
-                plan.recurso_didactico.set(recursos)
+            # Guardar ManyToManyField correctamente
+            plan.numero_actividad.set(form.cleaned_data.get('numero_actividad', []))
+            plan.recurso_didactico.set(form.cleaned_data.get('recurso_didactico', []))
+            plan.forma_ense.set(form.cleaned_data.get('forma_ense', []))
+            plan.tecnica_cierre.set(form.cleaned_data.get('tecnica_cierre', []))
 
-                messages.success(request, "Plan creado exitosamente.")
-                return redirect('planes_list')
-            except Anexo1.DoesNotExist:
-                messages.error(request, "La actividad seleccionada no es válida.")
+            messages.success(request, "Plan creado exitosamente.")
+            return redirect('planes_list')
         else:
-            print(form.errors)
             messages.error(request, "Por favor, corrija los errores en el formulario.")
     else:
-        # Filtrar actividades disponibles de Anexo1
-        actividades_disponibles = Anexo1.objects.filter(docente=docente).exclude(
-            id__in=Planes.objects.values_list('anexo_id', flat=True)
-        )
-        form = PlanesForm()
-        form.fields['numero_actividad'].choices = [
-            (actividad.id, f"{actividad.actividad} - {actividad.tema}") for actividad in actividades_disponibles
-        ]
-
+        # Excluir actividades ya asignadas en otros planes
+        actividades_asignadas = Planes.objects.values_list('numero_actividad', flat=True)
+        actividades_disponibles = Anexo1.objects.filter(docente=docente, materia=materia).exclude(id__in=actividades_asignadas)
+        
+        if not actividades_disponibles.exists():
+            messages.error(request, "No hay actividades disponibles. Ha cumplido con todas las actividades.")
+            return redirect('planes_list')
+        
+        form = PlanesForm(initial={'plan_nombre': nuevo_numero_plan})  # Cargar número de plan inicial
+        form.fields['numero_actividad'].queryset = actividades_disponibles
+        form.fields['forma_ense'].queryset = FormasEnse.objects.all()
+        form.fields['tecnica_cierre'].queryset = TecnicaCierre.objects.all()
+    
     return render(request, 'planes/planes_form.html', {
         'form': form,
+        'materia': materia,  # Pasar la materia al template
     })
+
+
 
 def upload_excel(request):
     if request.method == 'POST':
@@ -408,7 +430,7 @@ def upload_excel(request):
                     existe = Anexo1.objects.filter(
                         materia=row['Materia'],
                         semestre=row['Semestre'],
-                        actividad=row['Actividad'],
+                        numero_actividad=row['Actividad'],
                         tema=row['Tema'],
                         archivo=ruta_archivo
                     ).exists()
@@ -422,7 +444,7 @@ def upload_excel(request):
                         materia=row['Materia'],
                         carrera=row['Carrera'],
                         semestre=row['Semestre'],
-                        actividad=row['Actividad'],
+                        numero_actividad=row['Actividad'],
                         tema=row['Tema'],
                         trabajo_independiente=row['Trabajo Independiente'],
                         archivo=ruta_archivo
@@ -485,6 +507,9 @@ def pie_pagina(canvas, doc):
 
 def generar_plan_pdf(request, plan_id):
     plan = get_object_or_404(Planes, id=plan_id)
+    tecnicacierr= plan.tecnica_cierre.all()
+    formasense= plan.forma_ense.all()
+    activi = plan.numero_actividad.all()
     recursos = plan.recurso_didactico.all()
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="plan_{plan_id}.pdf"'
@@ -504,41 +529,58 @@ def generar_plan_pdf(request, plan_id):
     estilos = getSampleStyleSheet()
     estilos.add(ParagraphStyle(name="Arial11", fontName="Arial", fontSize=11, leading=14))
     estilos.add(ParagraphStyle(name="Sangria",parent=estilos["Normal"],firstLineIndent=30))
+    estilos.add(ParagraphStyle(name="Sangrias",parent=estilos["Normal"],firstLineIndent=390))
     estilos.add(ParagraphStyle(name="Arial11b", fontName="Arial-Bold", fontSize=11, leading=14))
     estilos.add(ParagraphStyle(name="Titulo12", fontName="Arial-Bold", fontSize=11, leading=16))
     estilos.add(ParagraphStyle(name="TituloCentrado", fontName="Arial-Bold", fontSize=11, leading=16, alignment=TA_CENTER))
 
-
+    anexo = plan.numero_actividad.first()
     # Título
     elementos.append(Spacer(1, 10))
     elementos.append(Paragraph(f"PLAN DE CLASES N°: {plan.plan_nombre}", estilos["TituloCentrado"]))
-    elementos.append(Paragraph(f"CARRERA: {plan.anexo.carrera.upper()}", estilos["TituloCentrado"]))
-    elementos.append(Paragraph(f"ASIGNATURA: {plan.anexo.materia.upper()}", estilos["TituloCentrado"]))
-    elementos.append(Spacer(1, 20))
+    elementos.append(Paragraph(f"CARRERA: {anexo.carrera.upper()}", estilos["TituloCentrado"]))
+    elementos.append(Paragraph(f"ASIGNATURA: {anexo.materia.upper()}", estilos["TituloCentrado"]))
+    elementos.append(Spacer(1, 10))
+    fecha = Paragraph(
+        f"<u><b>FECHA: </b></u> {plan.fecha_ejecucion}",
+        estilos["Sangrias"]
+    )
+    elementos.append(fecha)
     docente = Paragraph(
-        f"<u><b>DOCENTE:</b></u> {plan.anexo.docente.upper()}",
+        f"<u><b>DOCENTE:</b></u> {anexo.docente.upper()} ",
         estilos["Normal"]
     )
     elementos.append(docente)
-    num_act = Paragraph(
-        f"<b><u>NÚMERO DE ACTIVIDAD:</u></b> {plan.anexo.actividad}",
-        estilos["Normal"]
-    )
-    elementos.append(num_act)
+    actividad_texto = "<b><u>NÚMERO DE ACTIVIDAD:</u></b> "
+    for forma in activi:
+        actividad_texto += f"{forma.numero_actividad}, "
+
+    # Quitar la última coma y espacio
+    actividad_texto = actividad_texto.rstrip(", ")
+    # Crear el párrafo con los recursos didácticos
+    actividad_texto = Paragraph(actividad_texto, estilos["Normal"])
+    # Agregar ambos párrafos a los elementos del PDF
+    elementos.append(actividad_texto)
     act_doc = Paragraph(
         f"<b><u>ACTIVIDAD DOCENTE:</u></b> {plan.actividad_docente}",
         estilos["Normal"]
     )
+    elementos.append(act_doc)
     metodo = Paragraph(
         f"<u><b>MÉTODO:</b></u> {plan.metodo.nombre.upper()}",
         estilos["Normal"]
     )
     elementos.append(metodo)
-    forma_ense = Paragraph(
-        f"<b><u>FORMA DE ENSEÑANZA:</u></b> {plan.forma_ense.nombre.upper()}",
-        estilos["Normal"]
-    )
-    elementos.append(forma_ense)
+    formaense_texto = "<b><u>FORMA DE ENSEÑANZA:</u></b> "
+    for forma in formasense:
+        formaense_texto += f"{forma.nombre.upper()}, "
+
+    # Quitar la última coma y espacio
+    formaense_texto = formaense_texto.rstrip(", ")
+    # Crear el párrafo con los recursos didácticos
+    formaense_texto = Paragraph(formaense_texto, estilos["Normal"])
+    # Agregar ambos párrafos a los elementos del PDF
+    elementos.append(formaense_texto)
     recursos_texto = "<b><u>RECURSOS DIDÁCTICOS:</u></b> "
     for recurso in recursos:
         recursos_texto += f"{recurso.nombre.upper()}, "
@@ -574,7 +616,7 @@ def generar_plan_pdf(request, plan_id):
     elementos.append(Paragraph(f"{plan.motivacion}", estilos["Normal"]))
     elementos.append(Spacer(1, 5))
     elementos.append(Paragraph("I.7. Anuncio del tema de la clase. ", estilos["Titulo12"]))
-    elementos.append(Paragraph(f"{plan.anexo.tema}", estilos["Normal"]))
+    elementos.append(Paragraph(f"{plan.actividad_docente}", estilos["Normal"]))
     elementos.append(Spacer(1, 5))
     elementos.append(Paragraph("I.8. Anuncio del objetivo de la clase. ", estilos["Titulo12"]))
     elementos.append(Paragraph(f"{plan.objetivo}", estilos["Normal"]))
@@ -600,13 +642,21 @@ def generar_plan_pdf(request, plan_id):
     elementos.append(Paragraph(f"{plan.evaluacion_aprendizaje}", estilos["Normal"]))
     elementos.append(Spacer(1, 5))
     elementos.append(Paragraph("III.3. Orientación del trabajo independiente. ", estilos["Titulo12"]))
-    elementos.append(Paragraph(f"{plan.anexo.trabajo_independiente}", estilos["Normal"]))
+    elementos.append(Paragraph(f"{plan.actividad_docente}", estilos["Normal"]))
     elementos.append(Spacer(1, 5))
     elementos.append(Paragraph("III.4. Anuncio del tema de la próxima clase. ", estilos["Titulo12"]))
-    elementos.append(Paragraph(f"{plan.anexo.trabajo_independiente}", estilos["Normal"]))
-    elementos.append(Spacer(1, 5))
-    elementos.append(Paragraph("III.5. Aplicación de técnica de cierre. ", estilos["Titulo12"]))
-    elementos.append(Paragraph(f"{plan.tecnica_cierre.nombre}", estilos["Normal"]))
+    elementos.append(Paragraph(f"{plan.actividad_docente}", estilos["Normal"]))
+    elementos.append(Spacer(1, 5)) 
+    recursos_texto = "<b>III.5. Aplicación de técnica de cierre</b><br/> "
+    for recurso in tecnicacierr:
+        recursos_texto += f"{recurso.nombre.upper()}, "
+
+    # Quitar la última coma y espacio
+    recursos_texto = recursos_texto.rstrip(", ")
+    # Crear el párrafo con los recursos didácticos
+    recursos_parrafo = Paragraph(recursos_texto, estilos["Normal"])
+    # Agregar ambos párrafos a los elementos del PDF
+    elementos.append(recursos_parrafo)
     elementos.append(Spacer(1, 5))
     elementos.append(Paragraph("Bibliografía. ", estilos["Titulo12"]))
     elementos.append(Paragraph(f"{plan.bibliografia}", estilos["Normal"]))
