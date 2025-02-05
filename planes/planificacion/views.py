@@ -9,7 +9,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import *
 from .forms import *
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Table, TableStyle, Spacer, Image
@@ -44,6 +44,7 @@ def CustomLoginView(request):
         if username in USUARIOS and USUARIOS[username] == password:
             # Guardar el estado de autenticación en la sesión
             request.session["user"] = username
+            request.session["rol"] = "coordinador"
             return redirect(request.GET.get("next", "menu_principal"))
         else:
             messages.error(request, "Usuario o contraseña incorrectos. Intenta de nuevo.")
@@ -300,10 +301,13 @@ class PlanesListView(SessionAuthRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.session.get('user')
+        materia = self.request.GET.get('materia')
 
         if user:
-            return Planes.objects.filter(numero_actividad__docente=user).distinct().prefetch_related('numero_actividad')
-
+            queryset = Planes.objects.filter(numero_actividad__docente=user).distinct().prefetch_related('numero_actividad')
+            if materia:
+                queryset = queryset.filter(numero_actividad__materia=materia)
+            return queryset
         return Planes.objects.none()
 
     def get_context_data(self, **kwargs):
@@ -311,26 +315,30 @@ class PlanesListView(SessionAuthRequiredMixin, ListView):
         user = self.request.session.get('user')
 
         if user:
-            # Obtener todas las materias donde el docente tiene actividades en Anexo1
+            # Obtener todas las materias donde el docente tiene actividades
             todas_las_materias = (
                 Anexo1.objects.filter(docente=user)
                 .values_list('materia', flat=True)
                 .distinct()
             )
 
-            # Agrupar planes por materia
-            planes_por_materia = defaultdict(list)
+            # Crear un diccionario con todas las materias, asegurando que las vacías también estén
+            planes_por_materia = {materia: [] for materia in todas_las_materias}
+
+            # Llenar solo las materias que tienen planes
             for plan in context['planes']:
-                # Asegurarse de que el plan tenga actividades y obtener la materia correctamente
                 if plan.numero_actividad.exists():
                     materia = plan.numero_actividad.first().materia
                     planes_por_materia[materia].append(plan)
 
+            # Convertir a lista de tuplas para facilitar la iteración en la plantilla
+            context['planes_por_materia'] = list(planes_por_materia.items())
             context['materias_disponibles'] = todas_las_materias
-            context['planes_por_materia'] = dict(planes_por_materia)  # Cambié de 'planes_por_materia' a 'planes_materia' en la plantilla
-            context['user'] = user  # Agregar información del usuario
+            context['user'] = user
+            context['materia_seleccionada'] = self.request.GET.get('materia', todas_las_materias.first() if todas_las_materias else None)
 
         return context
+
 
 def crear_plan(request, materia):
     # Obtener el docente desde la sesión

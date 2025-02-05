@@ -55,7 +55,11 @@
         <label for="{{ form.metodo.id_for_label }}" class="form-label"
           >MÉTODO</label
         >
-        {{ form.metodo }}{% if form.metodo.errors %}
+        <a class="btn-primary" href="{% url 'metodos_list' %}">
+          <i class="fa-solid fa-plus"></i> Agregar
+        </a>
+        <br />
+        {{ form.metodo }} {% if form.metodo.errors %}
         <div class="text-danger">
           {% for error in form.metodo.errors %}
           <p>{{ error }}</p>
@@ -64,6 +68,7 @@
         {% endif %}
       </div>
     </div>
+
     <div class="col-md-6">
       <div class="mb-3">
         <label
@@ -88,6 +93,9 @@
         <label for="{{ form.forma_ense.id_for_label }}" class="form-label"
           >FORMA DE ENSEÑANZA</label
         >
+        <a class="btn-primary" href="{% url 'forma_ense_list' %}"
+          ><i class="fa-solid fa-plus"></i> Agregar</a
+        >
         <div>
           {% for forma_ense in form.forma_ense %} {{ forma_ense }} {% endfor %}
         </div>
@@ -108,6 +116,9 @@
         >
           RECURSOS DIDÁCTICOS PARA LAS CLASE:
         </label>
+        <a class="btn-primary" href="{% url 'recursos_didacticos_list' %}"
+          ><i class="fa-solid fa-plus"></i> Agregar</a
+        >
         <div>
           {% for recurso in form.recurso_didactico %} {{ recurso }} {% endfor %}
         </div>
@@ -295,6 +306,9 @@
         <label for="{{ form.tecnica_cierre.id_for_label }}" class="form-label"
           >Aplicación de técnica de cierre</label
         >
+        <a class="btn-primary" href="{% url 'tecnica_cierre_list' %}">
+          <i class="fa-solid fa-plus"></i> Agregar
+        </a>
         <div>{% for teci in form.tecnica_cierre %} {{ teci }} {% endfor %}</div>
         {% if form.tecnica_cierre.errors %}
         <div class="text-danger">
