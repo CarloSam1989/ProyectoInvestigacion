@@ -12,6 +12,16 @@ class Anexo1Form(forms.ModelForm):
         model = Anexo1
         fields = ['archivo']
 
+class TrabajoFechaForm(forms.ModelForm):
+    archivo = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'class': 'form-control'})  # Aplicar estilo de Bootstrap
+    )
+
+    class Meta:
+        model = TrabajoFecha
+        fields = ['archivo']
+
 class MetodosForm(forms.ModelForm):
     class Meta:
         model = Metodos
@@ -52,26 +62,16 @@ class FormasEnseForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
 
-class SaludoForm(forms.ModelForm):
-    class Meta:
-        model = Saludo
-        fields = ['materia', 'saludo', 'docente']
-
-    materia = forms.ChoiceField(
-        choices=[(materia, materia) for materia in Anexo1.objects.values_list('materia', flat=True).distinct()],
-        widget=forms.Select(attrs={'class': 'form-control'})  # Bootstrap styling
-    )
-
-    saludo = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el saludo'})
-    )
-
 class PlanesForm(forms.ModelForm):
     plan_nombre = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     metodo = forms.ModelChoiceField(
         queryset=Metodos.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    trabajo_fecha = forms.ModelChoiceField(
+        queryset=TrabajoFecha.objects.all(),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     tecnica_cierre = forms.ModelMultipleChoiceField(
@@ -96,9 +96,6 @@ class PlanesForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     asistencia = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    trabajo_fecha = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     motivacion = forms.CharField(

@@ -32,14 +32,11 @@ urlpatterns = [
     path('forma_ense/<int:pk>/update/', FormaEnseUpdateView.as_view(), name='forma_ense_update'),
     path('forma_ense/<int:pk>/delete/', FormaEnseDeleteView.as_view(), name='forma_ense_delete'),
 
-    path('saludo/', SaludoListView.as_view(), name='saludo_list'),
-    path('saludo/<int:pk>/', SaludoDetailView.as_view(), name='saludo_detail'),
-    path('saludo/create/', SaludoCreateView.as_view(), name='saludo_create'),
-    path('saludo/<int:pk>/update/', SaludoUpdateView.as_view(), name='saludo_update'),
-    path('saludo/<int:pk>/delete/', SaludoDeleteView.as_view(), name='saludo_delete'),
-
     path("anexo/upload/", upload_excel, name="upload_excel"),
     path('anexos/<str:materia>/', Anexo1ListView.as_view(), name='anexo1_list'),
+
+    path("trabajofecha/upload/", upload_exceltf, name="upload_tfexcel"),
+    path('trabajofecha/<str:materia>/', Trabajo_Fecha.as_view(), name='trabajofecha_list'),
 
     path('planes/', PlanesListView.as_view(), name='planes_list'),
     path('planes/create/<str:materia>/', crear_plan, name='planes_create'),

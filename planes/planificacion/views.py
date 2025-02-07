@@ -1,12 +1,14 @@
 
 # Create your views here.
 import pandas as pd
+from datetime import datetime
 import os
 from django.conf import settings
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.paginator import Paginator
 from .models import *
 from .forms import *
 from django.http import HttpResponse,JsonResponse
@@ -213,70 +215,6 @@ class FormaEnseDeleteView(SessionAuthRequiredMixin, DeleteView):
     template_name = 'forma_ense/forma_ense_confirm_delete.html'
     success_url = reverse_lazy('forma_ense_list')
 
-#Saludo
-
-# Vista para listar métodos
-
-class SaludoListView(SessionAuthRequiredMixin, ListView):
-    model = Saludo
-    template_name = 'saludo/saludo_list.html'
-    context_object_name = 'saludo'
-
-    def get_queryset(self):
-        # Obtener el usuario de la sesión
-        user = self.request.session.get('user')
-
-        # Filtrar por el campo docente que coincida con el usuario de la sesión
-        if user:
-            return Saludo.objects.filter(docente=user)
-        else:
-            # Retornar un queryset vacío si no hay un usuario en la sesión
-            return Saludo.objects.none()
-
-# Vista para ver detalles de un método
-class SaludoDetailView(SessionAuthRequiredMixin, DetailView):
-    model = Saludo
-    template_name = 'saludo/saludo_detail.html'
-    context_object_name = 'saludo'
-
-# Vista para crear un nuevo método
-class SaludoCreateView(SessionAuthRequiredMixin, CreateView):
-    model = Saludo
-    template_name = 'saludo/saludo_form.html'
-    fields = ['materia', 'saludo']  # Excluir 'docente' porque se establecerá automáticamente
-    success_url = reverse_lazy('saludo_list')
-
-    def get_form(self, *args, **kwargs):
-        form = super().get_form(*args, **kwargs)
-
-        # Modificar el campo "materia" para ser un ComboBox con las materias de Anexo1
-        form.fields['materia'] = forms.ChoiceField(
-           choices=[(materia, materia) for materia in Anexo1.objects.values_list('materia', flat=True).distinct()],
-           required=True,
-           widget=forms.Select(attrs={'class': 'form-control'})  # Aplicar estilo de Bootstrap
-        )
-        form.fields['saludo'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Ingrese el saludo'})
-        return form
-
-    def form_valid(self, form):
-        # Establecer el campo "docente" con el usuario de la sesión
-        form.instance.docente = self.request.session.get('user')
-        return super().form_valid(form)
-
-# Vista para actualizar un método existente
-class SaludoUpdateView(SessionAuthRequiredMixin, UpdateView):
-    model = Saludo
-    template_name = 'saludo/saludo_form.html'
-    fields = ['saludo', 'asignatura']
-    success_url = reverse_lazy('fsaludo_list')
-
-# Vista para eliminar un método
-class SaludoDeleteView(SessionAuthRequiredMixin, DeleteView):
-    model = Saludo
-    template_name = 'saludo/saludo_confirm_delete.html'
-    success_url = reverse_lazy('saludo_list')
-
-
 class Anexo1ListView(SessionAuthRequiredMixin, ListView):
     model = Anexo1
     template_name = 'anexo/list.html'
@@ -293,6 +231,21 @@ class Anexo1ListView(SessionAuthRequiredMixin, ListView):
             # Si no hay id, devolver todos los registros
             return Anexo1.objects.all().order_by('numero_actividad')
 
+class Trabajo_Fecha(SessionAuthRequiredMixin, ListView):
+    model = TrabajoFecha
+    template_name = 'trabajo_fecha/list.html'
+    context_object_name = 'trabajo_fecha'
+
+    def get_queryset(self):
+        # Obtener el 'id' desde los parámetros de la URL
+        fecha = self.kwargs.get('fecha')  # Usar kwargs para acceder al parámetro 'id'
+
+        if fecha:
+            # Filtrar por materia si el id está presente
+            return TrabajoFecha.objects.filter(fecha=fecha).order_by('fecha')
+        else:
+            # Si no hay id, devolver todos los registros
+            return TrabajoFecha.objects.all().order_by('fecha')
 
 class PlanesListView(SessionAuthRequiredMixin, ListView):
     model = Planes
@@ -339,62 +292,54 @@ class PlanesListView(SessionAuthRequiredMixin, ListView):
 
         return context
 
-
 def crear_plan(request, materia):
-    # Obtener el docente desde la sesión
     docente = request.session.get('user')
     if not docente:
         messages.error(request, "No se encontró información del docente.")
         return redirect('planes_list')
 
-    # Obtener actividades disponibles para la materia seleccionada por el docente
-    actividades_disponibles = Anexo1.objects.filter(docente=docente, materia=materia)
+    # 🔹 Excluir actividades que ya fueron seleccionadas
+    actividades_disponibles = Anexo1.objects.filter(
+        docente=docente, materia=materia
+    ).exclude(id__in=Planes.objects.values_list('numero_actividad', flat=True))
+
     if not actividades_disponibles.exists():
         messages.error(request, "No hay actividades disponibles para esta materia.")
         return redirect('planes_list')
 
-    # Obtener el último plan creado para la materia y calcular el siguiente número
+    # 🔹 Obtener el número del próximo plan
     ultimo_plan = Planes.objects.filter(numero_actividad__materia=materia).order_by('-id').first()
     nuevo_numero_plan = f"{int(ultimo_plan.plan_nombre.split()[-1]) + 1}" if ultimo_plan else "1"
-    
+
+    # 🔹 PAGINAR DE 8 EN 8
+    page = request.GET.get('page', 1)
+    paginator = Paginator(actividades_disponibles, 8)  
+    actividades_paginadas = paginator.get_page(page)  # Obtenemos la página actual
+
     if request.method == 'POST':
         form = PlanesForm(request.POST)
         if form.is_valid():
             plan = form.save(commit=False)
-            plan.plan_nombre = nuevo_numero_plan  # Asignar número de plan automáticamente
-            plan.desarrollo_clase = request.POST.get('desarrollo_clase')  # CKEditor guarda HTML
+            plan.plan_nombre = nuevo_numero_plan
+            plan.desarrollo_clase = request.POST.get('desarrollo_clase')
             plan.save()
-
-            # Guardar ManyToManyField correctamente
             plan.numero_actividad.set(form.cleaned_data.get('numero_actividad', []))
             plan.recurso_didactico.set(form.cleaned_data.get('recurso_didactico', []))
             plan.forma_ense.set(form.cleaned_data.get('forma_ense', []))
             plan.tecnica_cierre.set(form.cleaned_data.get('tecnica_cierre', []))
-
             messages.success(request, "Plan creado exitosamente.")
             return redirect('planes_list')
         else:
             messages.error(request, "Por favor, corrija los errores en el formulario.")
     else:
-        # Excluir actividades ya asignadas en otros planes
-        actividades_asignadas = Planes.objects.values_list('numero_actividad', flat=True)
-        actividades_disponibles = Anexo1.objects.filter(docente=docente, materia=materia).exclude(id__in=actividades_asignadas)
-        
-        if not actividades_disponibles.exists():
-            messages.error(request, "No hay actividades disponibles. Ha cumplido con todas las actividades.")
-            return redirect('planes_list')
-        
-        form = PlanesForm(initial={'plan_nombre': nuevo_numero_plan})  # Cargar número de plan inicial
-        form.fields['numero_actividad'].queryset = actividades_disponibles
-        form.fields['forma_ense'].queryset = FormasEnse.objects.all()
-        form.fields['tecnica_cierre'].queryset = TecnicaCierre.objects.all()
-    
+        form = PlanesForm(initial={'plan_nombre': nuevo_numero_plan})
+        form.fields['numero_actividad'].queryset = actividades_paginadas.object_list  # Cargamos solo las actividades de la página actual
+
     return render(request, 'planes/planes_form.html', {
         'form': form,
-        'materia': materia,  # Pasar la materia al template
+        'materia': materia,
+        'actividades_paginadas': actividades_paginadas,  # Pasamos la paginación a la plantilla
     })
-
-
 
 def upload_excel(request):
     if request.method == 'POST':
@@ -489,6 +434,71 @@ def upload_excel(request):
     return render(request, 'anexo/anexo.html', {
         'form': form,
         'asignaturas_registradas': asignaturas_registradas
+    })
+
+def upload_exceltf(request):
+    if request.method == 'POST':
+        form = TrabajoFechaForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo = request.FILES['archivo']
+
+            try:
+                # Leer el archivo Excel
+                df = pd.read_excel(archivo)
+
+                # Validar columnas requeridas
+                required_columns = ['Fecha', 'Nombre']
+                for column in required_columns:
+                    if column not in df.columns:
+                        messages.error(request, f"Error: Falta la columna '{column}' en el archivo.")
+                        return redirect('upload_tfexcel')
+
+                # Guardar el archivo en la carpeta de medios con un nombre único
+                ruta_archivo = os.path.join('fecha', archivo.name)
+                with open(os.path.join(settings.MEDIA_ROOT, ruta_archivo), 'wb+') as destino:
+                    for chunk in archivo.chunks():
+                        destino.write(chunk)
+
+                # Procesar cada fila del Excel
+                procesados = 0
+                omitidos = 0
+                for _, row in df.iterrows():
+                    if isinstance(row['Fecha'], datetime):
+                        fecha = row['Fecha'].date().isoformat()  # Convierte a YYYY-MM-DD
+                    else:
+                        fecha = str(row['Fecha'])  # Asegura que sea string
+                    
+                    # Validar duplicados basados en el nombre y fecha
+                    if TrabajoFecha.objects.filter(nombre=row['Nombre'], fecha=fecha).exists():
+                        omitidos += 1
+                        continue
+
+                    # Crear registro si no es duplicado
+                    TrabajoFecha.objects.create(
+                        nombre=row['Nombre'],
+                        fecha=fecha,
+                        archivo=ruta_archivo
+                    )
+                    procesados += 1
+
+                if omitidos == 0 and procesados > 0:
+                    messages.success(request, f"Archivo procesado exitosamente: {procesados} registros agregados.")
+                    return redirect('trabajo_fecha_list')
+                elif omitidos > 0:
+                    messages.success(request, f"Archivo procesado exitosamente: {procesados} registros agregados, {omitidos} omitidos por duplicidad.")
+                    return redirect('upload_tfexcel')
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo: {e}")
+                return redirect('upload_tfexcel')
+    else:
+        form = TrabajoFechaForm()
+
+    # 🔹 Obtener todas las fechas para enviarlas al template
+    fechas = TrabajoFecha.objects.all()
+
+    return render(request, 'trabajo_fecha/fecha.html', {
+        'form': form,
+        'fechas': fechas  # Pasar la lista de fechas a la plantilla
     })
 
 def vista_plan_detalle(request, plan_id):

@@ -101,8 +101,8 @@
                   <li class="nav-item">
                     <a
                       class="nav-link text-white"
-                      href="{% url 'upload_excel' %}"
-                      >Fecha</a
+                      href="{% url 'upload_tfexcel' %}"
+                      >Subir Fechas</a
                     >
                   </li>
                   {% endif %}
@@ -199,6 +199,80 @@
                 ": Activar para ordenar la columna de manera ascendente",
               sSortDescending:
                 ": Activar para ordenar la columna de manera descendente",
+            },
+          },
+        });
+      });
+    </script>
+    <script defer>
+      document.addEventListener("DOMContentLoaded", function () {
+        const fechaEjecucion = document.getElementById("id_fecha_ejecucion");
+        const trabajoFecha = document.getElementById("id_trabajo_fecha");
+
+        if (!fechaEjecucion || !trabajoFecha) {
+          console.error("No se encontraron los elementos en el DOM.");
+          return;
+        }
+
+        fechaEjecucion.addEventListener("change", function () {
+          let selectedDate = this.value.split("/").reverse().join("-"); // Convierte 27/01/2025 → 2025-01-27
+          let found = false;
+
+          for (let option of trabajoFecha.options) {
+            let optionText = option.textContent.trim(); // "2025-01-04 - Día Mundial del Braille"
+            let optionDate = optionText.split(" - ")[0]; // Extrae solo la fecha "2025-01-04"
+
+            if (optionDate === selectedDate) {
+              // Compara solo la fecha
+              trabajoFecha.value = option.value; // Selecciona el ID correcto
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            trabajoFecha.selectedIndex = 0; // Si no encuentra coincidencia, vuelve al primer valor
+          }
+        });
+      });
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const fechaEjecucion = document.getElementById("id_fecha_ejecucion");
+
+        if (!fechaEjecucion) return;
+
+        // Establecer la fecha mínima en el input
+        const today = new Date().toISOString().split("T")[0];
+        fechaEjecucion.setAttribute("min", today);
+
+        fechaEjecucion.addEventListener("change", function () {
+          const selectedDate = new Date(this.value);
+          const todayDate = new Date();
+
+          if (selectedDate <= todayDate) {
+            alert("La fecha de ejecución debe ser mayor a la fecha actual.");
+            this.value = ""; // Limpia el campo si la fecha es inválida
+          }
+        });
+      });
+    </script>
+    <script>
+      $(document).ready(function () {
+        $("#actividadesTable").DataTable({
+          pageLength: 8, // 🔹 Mostrar 8 actividades por página
+          language: {
+            lengthMenu: "Mostrar _MENU_ actividades por página",
+            zeroRecords: "No hay actividades disponibles",
+            info: "Mostrando página _PAGE_ de _PAGES_",
+            infoEmpty: "No hay actividades registradas",
+            infoFiltered: "(filtrado de _MAX_ actividades totales)",
+            search: "Buscar:",
+            paginate: {
+              first: "Primero",
+              last: "Último",
+              next: "Siguiente",
+              previous: "Anterior",
             },
           },
         });

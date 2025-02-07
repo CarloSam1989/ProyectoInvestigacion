@@ -34,14 +34,21 @@ class RecursosDidacticos(models.Model):
     def __str__(self):
         return self.nombre
     
-class Saludo(models.Model):
-    materia = models.TextField(default="Unknown")
-    saludo = models.TextField()
-    docente = models.TextField(default="Unknown")
-    fecha = models.DateTimeField(auto_now_add=True)
+def unico_archivo(instance, filename):
+    # Agrega un timestamp para crear una ruta única
+    timestamp = now().strftime("%Y%m%d%H%M%S")
+    return os.path.join('fechas', f"{timestamp}_{filename}")
+
+class TrabajoFecha(models.Model):
+    nombre = models.TextField()
+    fecha = models.DateField(null=True, blank=True)
+    archivo = models.FileField(upload_to=unico_archivo, null=True, blank=True)
+
+    class Meta:
+        app_label = 'planificacion'  # Debe coincidir con la app
 
     def __str__(self):
-        return self.saludo
+        return f"{self.fecha} - {self.nombre}"
 
 def unique_file_path(instance, filename):
     # Agrega un timestamp para crear una ruta única
@@ -79,7 +86,7 @@ class Planes(models.Model):
     numero_actividad = models.ManyToManyField(Anexo1, related_name='planes')
     actividad_docente = models.CharField(max_length=300)
     asistencia = models.TextField(null=True, blank=True)
-    trabajo_fecha = models.CharField(max_length=400, null=True, blank=True)
+    trabajo_fecha = models.ForeignKey(TrabajoFecha, on_delete=models.CASCADE)
     motivacion = models.TextField(null=True, blank=True)
     objetivo = models.TextField(null=True, blank=True)
     desarrollo_clase = models.TextField()
@@ -89,6 +96,4 @@ class Planes(models.Model):
 
     def __str__(self):
         return self.plan_nombre[:50] if self.plan_nombre else "Sin nombre"
-
-
 

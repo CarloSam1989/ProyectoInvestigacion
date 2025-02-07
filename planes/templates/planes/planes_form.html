@@ -35,19 +35,54 @@
     </div>
   </div>
   <div class="mb-3">
-    <label for="{{ form.numero_actividad.id_for_label }}" class="form-label">
-      NÚMERO DE ACTIVIDAD:
-    </label>
-    <div>
-      {% for activi in form.numero_actividad %} {{ activi }} {% endfor %}
+    <div class="form-group">
+      <label for="id_numero_actividad">Número de Actividad</label>
+      <div class="d-flex flex-wrap">
+        {% for actividad in form.numero_actividad.field.queryset %}
+        <div class="form-check me-3">
+          <input
+            type="checkbox"
+            name="numero_actividad"
+            value="{{ actividad.id }}"
+            class="form-check-input"
+            id="actividad{{ actividad.id }}"
+          />
+          <label class="form-check-label" for="actividad{{ actividad.id }}">
+            {{ actividad.numero_actividad }} - {{ actividad.tema }}
+          </label>
+        </div>
+        {% empty %}
+        <p>No hay actividades disponibles.</p>
+        {% endfor %}
+      </div>
     </div>
-    {% if form.actividad.errors %}
-    <div class="text-danger">
-      {% for error in form.actividad.errors %}
-      <p>{{ error }}</p>
-      {% endfor %}
-    </div>
-    {% endif %}
+    <nav>
+      <ul class="pagination justify-content-center">
+        {% if actividades_paginadas.has_previous %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ actividades_paginadas.previous_page_number }}"
+            >Anterior</a
+          >
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">{{ actividades_paginadas.number }}</span>
+        </li>
+
+        {% if actividades_paginadas.has_next %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ actividades_paginadas.next_page_number }}"
+            >Siguiente</a
+          >
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
   </div>
   <div class="row">
     <div class="col-md-6">
@@ -164,10 +199,12 @@
   </div>
 
   <div class="mb-3">
-    <label for="{{ form.asistencia.id_for_label }}" class="form-label"
+    <label for="{{ form.trabajo_fecha.id_for_label }}" class="form-label"
       >Trabajo con la fecha</label
     >
-    {{ form.trabajo_fecha }}{% if form.trabajo_fecha.errors %}
+
+    <br />
+    {{ form.trabajo_fecha }} {% if form.trabajo_fecha.errors %}
     <div class="text-danger">
       {% for error in form.trabajo_fecha.errors %}
       <p>{{ error }}</p>
