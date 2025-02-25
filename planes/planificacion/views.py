@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 import os
 from django.conf import settings
+from django.db.models import Count
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -19,7 +20,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
-from collections import defaultdict
+from urllib.parse import unquote
 
 
 # Registrar la fuente Arial
@@ -47,6 +48,7 @@ def CustomLoginView(request):
             # Guardar el estado de autenticación en la sesión
             request.session["user"] = username
             request.session["rol"] = "coordinador"
+            request.session["materia_cor"] = ["Desarrollo de Software", "REDES Y TELECOMUNICACIONES"]
             return redirect(request.GET.get("next", "menu_principal"))
         else:
             messages.error(request, "Usuario o contraseña incorrectos. Intenta de nuevo.")
@@ -702,3 +704,21 @@ def generar_plan_pdf(request, plan_id):
     doc.build(elementos)
 
     return response
+
+class ReportePlanesListView(ListView):
+    model = Anexo1
+    template_name = 'reportes/reporte.html'
+    context_object_name = 'anexos'
+
+    def get_queryset(self):
+        # Obtener el 'id' desde los parámetros de la URL
+        materia = self.kwargs.get('materia')  # Usar kwargs para acceder al parámetro 'id'
+        user = self.request.session.get('user')
+        materia = self.request.GET.get('materia')
+
+        if user:
+            queryset = Planes.objects.filter(numero_actividad__docente=user).distinct().prefetch_related('numero_actividad')
+            if materia:
+                queryset = queryset.filter(numero_actividad__materia=materia)
+            return queryset
+        return Planes.objects.none()

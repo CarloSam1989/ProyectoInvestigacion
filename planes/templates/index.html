@@ -1,3 +1,8 @@
 {% extends "base.html" %} {% block content %}
 <h1>Bienvenido, {{ request.session.rol}}</h1>
+<ul>
+  {% for materia in request.session.materia_cor %}
+  <li>{{ materia }}</li>
+  {% endfor %}
+</ul>
 {{ request.session.user|default:"Invitado" }} {% endblock %}
