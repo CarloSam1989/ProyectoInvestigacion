@@ -106,27 +106,26 @@
                   <a
                     class="nav-link dropdown-toggle"
                     href="#"
-                    id="materiaDropdown"
+                    id="carreraDropdown"
                     role="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                   >
                     <i class="fa-regular fa-folder"></i> Reportes
                   </a>
-                  <ul class="dropdown-menu" aria-labelledby="materiaDropdown">
-                    {% for materia in request.session.materia_cor %}
+                  <ul class="dropdown-menu" aria-labelledby="carreraDropdown">
+                    {% for carrera in request.session.materia_cor %}
                     <li>
                       <a
                         class="dropdown-item"
-                        href="{% url 'reporte_planes_filtrado' materia|urlencode %}"
-                        >{{ materia }}</a
+                        href="{% url 'reporte_materias' carrera|urlencode %}"
+                        >{{ carrera }}</a
                       >
                     </li>
-
                     {% empty %}
                     <li>
                       <a class="dropdown-item disabled" href="#"
-                        >No hay materias</a
+                        >No hay carreras</a
                       >
                     </li>
                     {% endfor %}

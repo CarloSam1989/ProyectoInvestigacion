@@ -1,4 +1,90 @@
 {% extends "base.html" %} {% block content %}
+<h2>Materias de la Carrera: {{ carrera }}</h2>
 
-<div><strong>Carrera:</strong> {{ anexos }}</div>
-{% endblock %}
+{% if materias_por_curso %}
+<div class="accordion" id="cursosAccordion">
+  {% for curso, materias in materias_por_curso.items %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="headingCurso{{ forloop.counter }}">
+      <button
+        class="accordion-button {% if not materias %}collapsed{% endif %}"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#collapseCurso{{ forloop.counter }}"
+        aria-expanded="{% if materias %}true{% else %}false{% endif %}"
+        aria-controls="collapseCurso{{ forloop.counter }}"
+      >
+        Semestre: {{ curso }}
+      </button>
+    </h2>
+    <div
+      id="collapseCurso{{ forloop.counter }}"
+      class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+      aria-labelledby="headingCurso{{ forloop.counter }}"
+      data-bs-parent="#cursosAccordion"
+    >
+      <div class="accordion-body">
+        <div class="accordion" id="materiasAccordion{{ forloop.counter }}">
+          {% for materia in materias %}
+          <div class="accordion-item">
+            <h2
+              class="accordion-header"
+              id="headingMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
+            >
+              <button
+                class="accordion-button {% if materia not in materias_con_planes %}collapsed{% endif %}"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
+                aria-expanded="{% if materia in materias_con_planes %}true{% else %}false{% endif %}"
+                aria-controls="collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
+              >
+                {{ materia }} {% if materia in materias_con_planes %}
+                <span class="badge bg-success ms-2">Con Planes de Clase</span>
+                {% else %}
+                <span class="badge bg-secondary ms-2">Sin Planes</span>
+                {% endif %}
+              </button>
+            </h2>
+            <div
+              id="collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
+              class="accordion-collapse collapse {% if materia in materias_con_planes %}show{% endif %}"
+              aria-labelledby="headingMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
+              data-bs-parent="#materiasAccordion{{ forloop.parentloop.counter }}"
+            >
+              <div class="accordion-body">
+                {% for materia, planes in planes_por_materia.items %}
+                <ul class="list-group">
+                  {% for plan in planes %}
+                  <li class="list-group-item">
+                    <strong>Nombre:</strong> Plan N° {{ plan.plan_nombre }}
+                    <br />
+                    <strong>Fecha Creado:</strong> {{ plan.fecha_creacion }}<br />
+                    <strong>Fecha Plan:</strong> {{ plan.fecha_ejecucion }}
+                    <br />
+
+                    <a
+                      href="{% url 'plan_pdf' plan.id %}"
+                      target="_blank"
+                      class="btn btn-primary"
+                      ><i class="fa-solid fa-download"></i> Descargar</a
+                    >
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% empty %}
+                <p>No hay planes registrados.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p>No hay materias registradas para esta carrera.</p>
+{% endif %} {% endblock %}

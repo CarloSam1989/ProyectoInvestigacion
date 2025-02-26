@@ -3,6 +3,7 @@
 import pandas as pd
 from datetime import datetime
 import os
+from collections import defaultdict
 from django.conf import settings
 from django.db.models import Count
 from django.contrib import messages
@@ -14,6 +15,7 @@ from .models import *
 from .forms import *
 from django.http import HttpResponse,JsonResponse
 from reportlab.lib.enums import TA_CENTER
+from urllib.parse import unquote  # Correcto
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Table, TableStyle, Spacer, Image
 from reportlab.lib import colors
@@ -705,20 +707,57 @@ def generar_plan_pdf(request, plan_id):
 
     return response
 
-class ReportePlanesListView(ListView):
+class ReporteMateriasListView(ListView):
     model = Anexo1
     template_name = 'reportes/reporte.html'
-    context_object_name = 'anexos'
+    context_object_name = 'materias'
 
     def get_queryset(self):
-        # Obtener el 'id' desde los parámetros de la URL
-        materia = self.kwargs.get('materia')  # Usar kwargs para acceder al parámetro 'id'
+        carrera = self.kwargs.get('carrera')
         user = self.request.session.get('user')
-        materia = self.request.GET.get('materia')
 
-        if user:
-            queryset = Planes.objects.filter(numero_actividad__docente=user).distinct().prefetch_related('numero_actividad')
-            if materia:
-                queryset = queryset.filter(numero_actividad__materia=materia)
-            return queryset
-        return Planes.objects.none()
+        if carrera:
+            carrera = unquote(carrera)  # Decodificar espacios en nombres de carrera
+            print(f"Carrera seleccionada: {carrera}")  # Depuración
+
+        if user and carrera:
+            # Obtener materias y cursos
+            materias = (
+                Anexo1.objects.filter(docente=user, carrera=carrera)
+                .values('materia', 'semestre')  # Obtener materia y curso (semestre)
+                .distinct()
+            )
+            return materias
+
+        return []
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        carrera = self.kwargs.get('carrera')
+
+        if carrera:
+            carrera = unquote(carrera)  # Decodificar carrera correctamente
+
+        # Agrupar materias por curso
+        materias_por_curso = defaultdict(list)
+        for item in self.get_queryset():
+            materias_por_curso[item['semestre']].append(item['materia'])
+
+        # Obtener materias con planes de clase
+        materias_con_planes = (
+            Anexo1.objects.filter(carrera=carrera, planes__isnull=False)
+            .values_list('materia', flat=True)
+            .distinct()
+        )
+
+        # Obtener los planes de cada materia
+        planes_por_materia = {
+            materia: Planes.objects.filter(numero_actividad__materia=materia).distinct()
+            for materia in materias_con_planes
+        }
+
+        context['carrera'] = carrera
+        context['materias_por_curso'] = dict(materias_por_curso)  # Pasar materias organizadas por curso
+        context['materias_con_planes'] = materias_con_planes
+        context['planes_por_materia'] = planes_por_materia
+        return context
