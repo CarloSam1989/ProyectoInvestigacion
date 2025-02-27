@@ -103,6 +103,7 @@
 
                 <!-- Menú de Reportes con Toggle -->
                 <li class="nav-item dropdown">
+                  <div>{% if request.session.rol == "Coordinador" %}</div>
                   <a
                     class="nav-link dropdown-toggle"
                     href="#"
@@ -131,7 +132,7 @@
                     {% endfor %}
                   </ul>
                 </li>
-
+                {% endif %}
                 <!-- Otras opciones del menú -->
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'upload_excel' %}">

@@ -2,7 +2,7 @@
 
 <!-- Navegación de pestañas -->
 <ul class="nav nav-tabs" id="materiaTabs" role="tablist">
-  {% for materia in materias_disponibles %}
+  {% if materias_disponibles %} {% for materia in materias_disponibles %}
   <li class="nav-item" role="presentation">
     <button
       class="nav-link {% if forloop.first %}active{% endif %}"
@@ -17,12 +17,18 @@
       {{ materia }}
     </button>
   </li>
-  {% endfor %}
+  {% endfor %} {% else %}
+  <p class="text-danger">
+    Debe subir primero el archivo de
+    <a href="{% url 'upload_excel' %}"> Anexo 1</a>
+    para visualizar las materias.
+  </p>
+  {% endif %}
 </ul>
 
 <!-- Contenido de las pestañas -->
 <div class="tab-content" id="materiaTabsContent">
-  {% for materia, planes in planes_por_materia %}
+  {% if materias_disponibles %} {% for materia, planes in planes_por_materia %}
   <div
     class="tab-pane fade {% if forloop.first %}show active{% endif %}"
     id="tab-{{ materia|slugify }}"
@@ -72,10 +78,10 @@
       </tbody>
     </table>
     {% else %}
-    <p class="text-muted">No hay contenido subido aún.</p>
+    <p class="text-muted">No hay planes de clases creados.</p>
     {% endif %}
   </div>
-  {% endfor %}
+  {% endfor %} {% endif %}
 </div>
 
 {% endblock %}

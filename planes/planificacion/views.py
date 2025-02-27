@@ -34,7 +34,7 @@ USUARIOS = {
     "admin": "admin",
     "user1": "Carlos",
     "Ing. Carlos Guzman": "Carlos",
-    "user2": "Jorge"
+    "Ing. Jorge Jaramillo": "Jorge"
 }
 
 def CustomLoginView(request):
@@ -49,7 +49,7 @@ def CustomLoginView(request):
         if username in USUARIOS and USUARIOS[username] == password:
             # Guardar el estado de autenticación en la sesión
             request.session["user"] = username
-            request.session["rol"] = "coordinador"
+            request.session["rol"] = "Coordinador"
             request.session["materia_cor"] = ["Desarrollo de Software", "REDES Y TELECOMUNICACIONES"]
             return redirect(request.GET.get("next", "menu_principal"))
         else:
@@ -713,51 +713,55 @@ class ReporteMateriasListView(ListView):
     context_object_name = 'materias'
 
     def get_queryset(self):
+        """Obtiene las materias y cursos asociados al docente en la carrera seleccionada."""
         carrera = self.kwargs.get('carrera')
         user = self.request.session.get('user')
 
         if carrera:
-            carrera = unquote(carrera)  # Decodificar espacios en nombres de carrera
-            print(f"Carrera seleccionada: {carrera}")  # Depuración
+            carrera = unquote(carrera)  # Decodificar el nombre de la carrera
 
         if user and carrera:
-            # Obtener materias y cursos
             materias = (
                 Anexo1.objects.filter(docente=user, carrera=carrera)
                 .values('materia', 'semestre')  # Obtener materia y curso (semestre)
                 .distinct()
             )
             return materias
-
         return []
 
     def get_context_data(self, **kwargs):
+        """Organiza las materias por curso y obtiene los planes de clase asociados."""
         context = super().get_context_data(**kwargs)
         carrera = self.kwargs.get('carrera')
 
         if carrera:
-            carrera = unquote(carrera)  # Decodificar carrera correctamente
+            carrera = unquote(carrera)
 
-        # Agrupar materias por curso
+        # Agrupar materias por curso (semestre)
         materias_por_curso = defaultdict(list)
         for item in self.get_queryset():
             materias_por_curso[item['semestre']].append(item['materia'])
 
-        # Obtener materias con planes de clase
-        materias_con_planes = (
+        # Obtener las materias que tienen planes de clase
+        materias_con_planes = set(
             Anexo1.objects.filter(carrera=carrera, planes__isnull=False)
             .values_list('materia', flat=True)
             .distinct()
         )
 
-        # Obtener los planes de cada materia
+        # Obtener los planes organizados por materia
         planes_por_materia = {
             materia: Planes.objects.filter(numero_actividad__materia=materia).distinct()
             for materia in materias_con_planes
         }
 
+        # Depuración (Puedes removerlo después de verificar)
+        print("Materias por curso:", dict(materias_por_curso))
+        print("Materias con planes:", materias_con_planes)
+        print("Planes por materia:", {k: list(v) for k, v in planes_por_materia.items()})
+
         context['carrera'] = carrera
-        context['materias_por_curso'] = dict(materias_por_curso)  # Pasar materias organizadas por curso
+        context['materias_por_curso'] = dict(materias_por_curso)  # Convertir defaultdict a dict
         context['materias_con_planes'] = materias_con_planes
         context['planes_por_materia'] = planes_por_materia
         return context

@@ -2,6 +2,7 @@
 <h2>Materias de la Carrera: {{ carrera }}</h2>
 
 {% if materias_por_curso %}
+
 <div class="accordion" id="cursosAccordion">
   {% for curso, materias in materias_por_curso.items %}
   <div class="accordion-item">
@@ -25,7 +26,7 @@
     >
       <div class="accordion-body">
         <div class="accordion" id="materiasAccordion{{ forloop.counter }}">
-          {% for materia in materias %}
+          {% for materia in materias_con_planes %}
           <div class="accordion-item">
             <h2
               class="accordion-header"
@@ -53,7 +54,8 @@
               data-bs-parent="#materiasAccordion{{ forloop.parentloop.counter }}"
             >
               <div class="accordion-body">
-                {% for materia, planes in planes_por_materia.items %}
+                {% for materias, planes in planes_por_materia.items %}
+                <div>{% if materia == materias%}</div>
                 <ul class="list-group">
                   {% for plan in planes %}
                   <li class="list-group-item">
@@ -72,7 +74,7 @@
                   </li>
                   {% endfor %}
                 </ul>
-                {% empty %}
+                {% endif %} {% empty %}
                 <p>No hay planes registrados.</p>
                 {% endfor %}
               </div>
