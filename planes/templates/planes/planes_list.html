@@ -66,12 +66,45 @@
           </td>
           <td>{{ plan.fecha_ejecucion }}</td>
           <td>
-            <a
-              href="{% url 'plan_pdf' plan.id %}"
-              target="_blank"
-              class="btn btn-primary"
-              ><i class="fa-solid fa-download"></i> Descargar</a
+            <!-- Solo mostrar formulario si no se ha subido el archivo firmado -->
+            {% if not plan.archivo_firmado %}
+            <form
+              action="{% url 'subir_plan_firmado' plan.id %}"
+              method="post"
+              enctype="multipart/form-data"
+              class="d-inline"
             >
+              {% csrf_token %}
+              <!-- Botón para descargar el plan -->
+              <a
+                href="{% url 'plan_pdf' plan.id %}"
+                target="_blank"
+                class="btn btn-primary mb-1"
+              >
+                <i class="fa-solid fa-download"></i> Descargar
+              </a>
+              <label for="archivo_{{ plan.id }}" class="btn btn-danger mb-1">
+                <i class="fa-solid fa-upload"></i> Subir
+              </label>
+              <input
+                type="file"
+                name="archivo_firmado"
+                id="archivo_{{ plan.id }}"
+                accept=".pdf"
+                style="display: none"
+                onchange="this.form.submit()"
+              />
+            </form>
+            {% else %}
+            <!-- Si ya fue subido, mostrar botón para verlo -->
+            <a
+              href="{{ plan.archivo_firmado.url }}"
+              target="_blank"
+              class="btn btn-success mt-1"
+            >
+              <i class="fa-solid fa-file-pdf"></i> Ver Firmado
+            </a>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

@@ -1,11 +1,10 @@
-
-# Create your views here.
+from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from datetime import datetime
 import os
 from collections import defaultdict
 from django.conf import settings
-from django.db.models import Count
+from django.template.loader import get_template
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -23,6 +22,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from urllib.parse import unquote
+from xhtml2pdf import pisa
 
 
 # Registrar la fuente Arial
@@ -50,6 +50,7 @@ def CustomLoginView(request):
             # Guardar el estado de autenticación en la sesión
             request.session["user"] = username
             request.session["rol"] = "Coordinador"
+            request.session["nombre_coordinador"] = "Ing. Jorge Jaramillo"
             request.session["materia_cor"] = ["Desarrollo de Software", "REDES Y TELECOMUNICACIONES"]
             return redirect(request.GET.get("next", "menu_principal"))
         else:
@@ -683,13 +684,16 @@ def generar_plan_pdf(request, plan_id):
     elementos.append(Paragraph("Bibliografía. ", estilos["Titulo12"]))
     elementos.append(Paragraph(f"{plan.bibliografia}", estilos["Normal"]))
     elementos.append(Spacer(1, 50))
+    nombre_docente = request.session.get("user", "DOCENTE")
+    nombre_coordinador = request.session.get("nombre_coordinador", "COORDINADOR DE CARRERA")
     datos = [
         ["Elaborado Por:", "Revisado Por:"],  # Primera fila vacía
+        [nombre_docente.upper(), nombre_coordinador.upper()],
         ["DOCENTE", "COORDINADOR DE CARRERA"]  # Segunda fila con texto
     ]
     # Definir los anchos de columnas y alturas de filas
     ancho_columnas = [150, 150]  # Ambas columnas de 150 puntos
-    alto_filas = [20, 80]  # Primera fila más grande (80 puntos), segunda fila más pequeña (40 puntos)
+    alto_filas = [20, 80, 20]  # Primera fila más grande (80 puntos), segunda fila más pequeña (40 puntos)
     # Crear la tabla con tamaños personalizados
     tabla = Table(datos, colWidths=ancho_columnas, rowHeights=alto_filas)
     # Aplicar estilos a la tabla
@@ -751,7 +755,10 @@ class ReporteMateriasListView(ListView):
 
         # Obtener los planes organizados por materia
         planes_por_materia = {
-            materia: Planes.objects.filter(numero_actividad__materia=materia).distinct()
+            materia: Planes.objects.filter(
+                numero_actividad__materia=materia,
+                archivo_firmado__isnull=False
+            ).exclude(archivo_firmado='').distinct()
             for materia in materias_con_planes
         }
 
@@ -765,3 +772,62 @@ class ReporteMateriasListView(ListView):
         context['materias_con_planes'] = materias_con_planes
         context['planes_por_materia'] = planes_por_materia
         return context
+    
+def subir_plan_firmado(request, plan_id):
+    plan = get_object_or_404(Planes, id=plan_id)
+    if request.method == 'POST' and request.FILES.get('archivo_firmado'):
+        archivo = request.FILES['archivo_firmado']
+        plan.archivo_firmado = archivo
+        plan.save()
+    return redirect('planes_list')  # Ej: 'planes_list'
+
+@csrf_exempt
+def subir_archivo_firmado(request):
+    if request.method == 'POST':
+        plan_id = request.POST.get('plan_id')
+        archivo = request.FILES.get('archivo_firmado')
+
+        if plan_id and archivo:
+            try:
+                plan = Planes.objects.get(id=plan_id)
+                plan.archivo_firmado = archivo
+                plan.save()
+                messages.success(request, "Archivo firmado actualizado correctamente.")
+            except Planes.DoesNotExist:
+                messages.error(request, "No se encontró el plan.")
+        else:
+            messages.error(request, "Datos incompletos.")
+    
+    # Redirigir a donde estabas antes
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+def generar_reporte_pdf(request, carrera):
+    carrera = carrera.strip().replace('%20', ' ')
+    datos = defaultdict(lambda: defaultdict(list))
+
+    planes = Planes.objects.filter(archivo_firmado__isnull=False).exclude(archivo_firmado='')
+
+    for plan in planes:
+        for anexo in plan.numero_actividad.all():
+            if anexo.carrera.strip().lower() == carrera.lower():
+                planes_count = Planes.objects.filter(numero_actividad=anexo, archivo_firmado__isnull=False).count()
+                datos[anexo.semestre][anexo.materia].append({
+                    'docente': anexo.docente,
+                    'planes': planes_count
+                })
+
+    if not datos:
+        print("No se encontraron datos para carrera:", carrera)
+
+    # Render HTML
+    template = get_template('reportes/reporte_pdf.html')
+    html = template.render({'carrera': carrera, 'datos': datos})
+
+    # Render PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="reporte.pdf"'
+    pisa_status = pisa.CreatePDF(html, dest=response)
+
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF')
+    return response

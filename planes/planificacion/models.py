@@ -93,6 +93,7 @@ class Planes(models.Model):
     conclusion = models.CharField(max_length=300, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_ejecucion = models.DateField(null=True, blank=True)
+    archivo_firmado = models.FileField(upload_to='planes_firmados/', null=True, blank=True)
 
     def __str__(self):
         return self.plan_nombre[:50] if self.plan_nombre else "Sin nombre"

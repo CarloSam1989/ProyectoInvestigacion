@@ -43,8 +43,12 @@ urlpatterns = [
 
     path("plan/<int:plan_id>/", vista_plan_detalle, name="detalle_plan"),
     path("plan/<int:plan_id>/pdf/", generar_plan_pdf, name="plan_pdf"),
+    path('planes/<int:plan_id>/subir/', subir_plan_firmado, name='subir_plan_firmado'),
 
     path('reporte/<str:carrera>/', ReporteMateriasListView.as_view(), name='reporte_materias'),
+    path('subir_archivo_firmado/', subir_archivo_firmado, name='subir_archivo_firmado'),
+    path('reporte_pdf/<str:carrera>/', generar_reporte_pdf, name='reporte_pdf'),
+
 
 
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

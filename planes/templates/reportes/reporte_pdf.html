@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Reporte de Planificación</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+      }
+      h2 {
+        text-align: center;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #444;
+        padding: 5px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Reporte de Planificación - {{ carrera }}</h2>
+
+    {% for semestre, materias in datos.items %}
+    <h3>Semestre: {{ semestre }}</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Asignatura</th>
+          <th>Docente</th>
+          <th>Planes Subidos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for materia, info in materias.items %} {% for entrada in info %}
+        <tr>
+          <td>{{ materia }}</td>
+          <td>{{ entrada.docente }}</td>
+          <td>{{ entrada.planes }}</td>
+        </tr>
+        {% endfor %} {% endfor %}
+      </tbody>
+    </table>
+    {% empty %}
+    <p>No hay datos disponibles para la carrera {{ carrera }}.</p>
+    {% endfor %}
+  </body>
+</html>

@@ -1,6 +1,8 @@
 {% extends "base.html" %} {% block content %}
 <h2>Materias de la Carrera: {{ carrera }}</h2>
-
+<a href="{% url 'reporte_pdf' carrera %}" class="btn btn-danger mb-4">
+  <i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF
+</a>
 {% if materias_por_curso %}
 
 <div class="accordion" id="cursosAccordion">
@@ -26,57 +28,86 @@
     >
       <div class="accordion-body">
         <div class="accordion" id="materiasAccordion{{ forloop.counter }}">
-          {% for materia in materias_con_planes %}
+          {% for materia, planes in planes_por_materia.items %}
           <div class="accordion-item">
             <h2
               class="accordion-header"
               id="headingMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
             >
               <button
-                class="accordion-button {% if materia not in materias_con_planes %}collapsed{% endif %}"
+                class="accordion-button"
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
-                aria-expanded="{% if materia in materias_con_planes %}true{% else %}false{% endif %}"
+                aria-expanded="false"
                 aria-controls="collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
               >
-                {{ materia }} {% if materia in materias_con_planes %}
-                <span class="badge bg-success ms-2">Con Planes de Clase</span>
+                {{ materia }} {% if planes %}
+                <span class="badge bg-success ms-2"
+                  >✔️ Hay planes Firmados</span
+                >
                 {% else %}
-                <span class="badge bg-secondary ms-2">Sin Planes</span>
+                <span class="badge bg-danger ms-2"
+                  >❌ No hay planes Firmado</span
+                >
                 {% endif %}
               </button>
             </h2>
             <div
               id="collapseMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
-              class="accordion-collapse collapse {% if materia in materias_con_planes %}show{% endif %}"
+              class="accordion-collapse collapse"
               aria-labelledby="headingMateria{{ forloop.parentloop.counter }}{{ forloop.counter }}"
               data-bs-parent="#materiasAccordion{{ forloop.parentloop.counter }}"
             >
               <div class="accordion-body">
-                {% for materias, planes in planes_por_materia.items %}
-                <div>{% if materia == materias%}</div>
                 <ul class="list-group">
-                  {% for plan in planes %}
+                  {% for plan in planes %} {% if plan.archivo_firmado %}
                   <li class="list-group-item">
-                    <strong>Nombre:</strong> Plan N° {{ plan.plan_nombre }}
-                    <br />
+                    <strong>Nombre:</strong> Plan N° {{ plan.plan_nombre }}<br />
                     <strong>Fecha Creado:</strong> {{ plan.fecha_creacion }}<br />
-                    <strong>Fecha Plan:</strong> {{ plan.fecha_ejecucion }}
-                    <br />
+                    <strong>Fecha Plan:</strong> {{ plan.fecha_ejecucion }}<br />
 
                     <a
-                      href="{% url 'plan_pdf' plan.id %}"
+                      href="{{ plan.archivo_firmado.url }}"
                       target="_blank"
-                      class="btn btn-primary"
-                      ><i class="fa-solid fa-download"></i> Descargar</a
+                      class="btn btn-success"
                     >
+                      <i class="fa-solid fa-file-pdf"></i> Ver Firmado
+                    </a>
+                    <!-- Botón que dispara el input file -->
+                    <button
+                      type="button"
+                      class="btn btn-warning"
+                      onclick="document.getElementById('input-file-{{ plan.id }}').click();"
+                    >
+                      <i class="fa-solid fa-upload"></i> Subir Archivo Firmado
+                    </button>
+
+                    <!-- Formulario oculto -->
+                    <form
+                      method="POST"
+                      action="{% url 'subir_archivo_firmado' %}"
+                      enctype="multipart/form-data"
+                      id="form-{{ plan.id }}"
+                    >
+                      {% csrf_token %}
+                      <input
+                        type="hidden"
+                        name="plan_id"
+                        value="{{ plan.id }}"
+                      />
+                      <input
+                        type="file"
+                        name="archivo_firmado"
+                        accept="application/pdf"
+                        id="input-file-{{ plan.id }}"
+                        class="d-none"
+                        onchange="document.getElementById('form-{{ plan.id }}').submit();"
+                      />
+                    </form>
                   </li>
-                  {% endfor %}
+                  {% endif %} {% endfor %}
                 </ul>
-                {% endif %} {% empty %}
-                <p>No hay planes registrados.</p>
-                {% endfor %}
               </div>
             </div>
           </div>
@@ -89,4 +120,5 @@
 </div>
 {% else %}
 <p>No hay materias registradas para esta carrera.</p>
+
 {% endif %} {% endblock %}
