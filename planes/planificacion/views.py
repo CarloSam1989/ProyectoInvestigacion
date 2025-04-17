@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import os
 from collections import defaultdict
+from django.db.models import Count, Q
 from django.conf import settings
 from django.template.loader import get_template
 from django.contrib import messages
@@ -802,32 +803,57 @@ def subir_archivo_firmado(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 def generar_reporte_pdf(request, carrera):
-    carrera = carrera.strip().replace('%20', ' ')
-    datos = defaultdict(lambda: defaultdict(list))
+    # Asegúrate de quitar espacios innecesarios y decodificar la carrera
+    carrera = unquote(carrera.strip())
 
-    planes = Planes.objects.filter(archivo_firmado__isnull=False).exclude(archivo_firmado='')
+    datos = defaultdict(lambda: defaultdict(list))  # Usamos defaultdict para agrupar por semestre
 
-    for plan in planes:
-        for anexo in plan.numero_actividad.all():
-            if anexo.carrera.strip().lower() == carrera.lower():
-                planes_count = Planes.objects.filter(numero_actividad=anexo, archivo_firmado__isnull=False).count()
-                datos[anexo.semestre][anexo.materia].append({
-                    'docente': anexo.docente,
-                    'planes': planes_count
-                })
+    # Obtener las materias únicas por semestre y materia
+    materias = (
+        Anexo1.objects.filter(carrera__iexact=carrera)
+        .values('semestre', 'materia','docente')
+        .distinct()
+    )
 
-    if not datos:
-        print("No se encontraron datos para carrera:", carrera)
+    # Iterar sobre las materias para contar los planes subidos
+    for item in materias:
+        semestre = item['semestre']
+        materia = item['materia']
+        docente = item['docente']
 
-    # Render HTML
+        # Contar cuántos planes firmados existen para esa materia
+        planes_count = Planes.objects.filter(
+            numero_actividad__materia=materia
+        ).count()
+
+          # Total de planes firmados
+        planes_firmados = Planes.objects.filter(
+            numero_actividad__materia=materia,
+            archivo_firmado__isnull=False
+        ).exclude(archivo_firmado='').count()
+
+        # Agrupar los datos: semestre -> materia -> lista de planes
+        datos[semestre][materia].append({
+            'materia': materia,
+            'planes': planes_count,
+            'docente': docente,
+            'firmados':planes_firmados
+        })
+
+    # Renderizar el template HTML
     template = get_template('reportes/reporte_pdf.html')
-    html = template.render({'carrera': carrera, 'datos': datos})
+   # html = template.render({'carrera': carrera, 'datos': dict(datos)})
+    html = template.render({'carrera': carrera, 'datos': json.loads(json.dumps(datos))})
 
-    # Render PDF
+
+    # Configurar la respuesta HTTP para generar el PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'inline; filename="reporte.pdf"'
+
+    # Crear el PDF a partir del HTML
     pisa_status = pisa.CreatePDF(html, dest=response)
 
     if pisa_status.err:
         return HttpResponse('Error al generar el PDF')
+
     return response

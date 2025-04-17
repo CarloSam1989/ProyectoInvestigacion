@@ -29,23 +29,25 @@
   </head>
   <body>
     <h2>Reporte de Planificación - {{ carrera }}</h2>
-
-    {% for semestre, materias in datos.items %}
+    {% for semestre, materias_dict in datos.items %}
     <h3>Semestre: {{ semestre }}</h3>
     <table>
       <thead>
         <tr>
           <th>Asignatura</th>
           <th>Docente</th>
-          <th>Planes Subidos</th>
+          <th>Actividades Realizadas</th>
+          <th>Planes Firmados</th>
         </tr>
       </thead>
       <tbody>
-        {% for materia, info in materias.items %} {% for entrada in info %}
+        {% for materia_nombre, planes_lista in materias_dict.items %}
+        <div>{% for entrada in planes_lista %}</div>
         <tr>
-          <td>{{ materia }}</td>
+          <td>{{ entrada.materia }}</td>
           <td>{{ entrada.docente }}</td>
           <td>{{ entrada.planes }}</td>
+          <td>{{ entrada.firmados }}</td>
         </tr>
         {% endfor %} {% endfor %}
       </tbody>
