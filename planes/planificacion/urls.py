@@ -48,6 +48,7 @@ urlpatterns = [
     path('reporte/<str:carrera>/', ReporteMateriasListView.as_view(), name='reporte_materias'),
     path('subir_archivo_firmado/', subir_archivo_firmado, name='subir_archivo_firmado'),
     path('reporte_pdf/<str:carrera>/', generar_reporte_pdf, name='reporte_pdf'),
+    path('agregar_observacion/', agregar_observacion, name='agregar_observacion'),
   
 
 

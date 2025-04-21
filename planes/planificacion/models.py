@@ -1,6 +1,7 @@
 from django.db import models
 import os
 from django.utils.timezone import now
+from django.contrib.auth.models import User
 
 class Metodos(models.Model):
     nombre = models.CharField(max_length=300)
@@ -98,3 +99,11 @@ class Planes(models.Model):
     def __str__(self):
         return self.plan_nombre[:50] if self.plan_nombre else "Sin nombre"
 
+class ObservacionPlan(models.Model):
+    plan = models.ForeignKey('Planes', on_delete=models.CASCADE, related_name='observaciones')
+    observacion = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Obs: {self.observacion[:30]} - {self.fecha.strftime('%d/%m/%Y')}"

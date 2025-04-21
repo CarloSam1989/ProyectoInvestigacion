@@ -4,56 +4,60 @@
     <meta charset="utf-8" />
     <title>Reporte de Planificación</title>
     <style>
+      @page {
+        size: A4;
+        margin: 10px 100px 50px 10px;  /* 120 arriba, 100 abajo, 40 laterales */
+      }
       body {
         font-family: Arial, sans-serif;
         font-size: 12px;
       }
-      h2 {
-        text-align: center;
-      }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
       }
-      th,
-      td {
+      th, td {
         border: 1px solid #444;
         padding: 5px;
-        text-align: left;
       }
       th {
-        background-color: #f2f2f2;
+        background-color: #eee;
       }
     </style>
-  </head>
-  <body>
-    <h2>Reporte de Planificación - {{ carrera }}</h2>
-    {% for semestre, materias_dict in datos.items %}
-    <h3>Semestre: {{ semestre }}</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Asignatura</th>
-          <th>Docente</th>
-          <th>Actividades Realizadas</th>
-          <th>Planes Firmados</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for materia_nombre, planes_lista in materias_dict.items %}
-        <div>{% for entrada in planes_lista %}</div>
-        <tr>
-          <td>{{ entrada.materia }}</td>
-          <td>{{ entrada.docente }}</td>
-          <td>{{ entrada.planes }}</td>
-          <td>{{ entrada.firmados }}</td>
-        </tr>
-        {% endfor %} {% endfor %}
-      </tbody>
-    </table>
-    {% empty %}
-    <p>No hay datos disponibles para la carrera {{ carrera }}.</p>
-    {% endfor %}
+    <body>
+      <pdf:header>
+          <img src="media/img/encabezado.jpg" width="100%" />
+      </pdf:header>
+      <pdf:footer>
+        <img src="media/img/pie.jpg" width="100%" />
+      </pdf:footer>
+      <h2>Reporte de Planificación - {{ carrera }}</h2>
+      {% for semestre, materias_dict in datos.items %}
+      <h3>Semestre: {{ semestre }}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Docente</th>
+            <th>Semestre</th>
+            <th>Asignatura</th>
+            <th>Planes Elaborados</th>
+            <th>Planes Firmados</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for materia_nombre, planes_lista in materias_dict.items %}
+            {% for entrada in planes_lista %}
+            <tr>
+              <td>{{ entrada.docente }}</td>
+              <td>{{ semestre }}</td>
+              <td>{{ entrada.materia }}</td>
+              <td>{{ entrada.planes }}</td>
+              <td>{{ entrada.firmados }}</td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endfor %}
   </body>
 </html>

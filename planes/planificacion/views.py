@@ -803,57 +803,116 @@ def subir_archivo_firmado(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 def generar_reporte_pdf(request, carrera):
-    # Asegúrate de quitar espacios innecesarios y decodificar la carrera
     carrera = unquote(carrera.strip())
+    datos = defaultdict(lambda: defaultdict(list))
 
-    datos = defaultdict(lambda: defaultdict(list))  # Usamos defaultdict para agrupar por semestre
-
-    # Obtener las materias únicas por semestre y materia
     materias = (
         Anexo1.objects.filter(carrera__iexact=carrera)
-        .values('semestre', 'materia','docente')
+        .values('semestre', 'materia', 'docente')
         .distinct()
     )
 
-    # Iterar sobre las materias para contar los planes subidos
     for item in materias:
         semestre = item['semestre']
         materia = item['materia']
         docente = item['docente']
-
-        # Contar cuántos planes firmados existen para esa materia
         planes_count = Planes.objects.filter(
             numero_actividad__materia=materia
-        ).count()
-
-          # Total de planes firmados
+        ).distinct().count()
         planes_firmados = Planes.objects.filter(
             numero_actividad__materia=materia,
             archivo_firmado__isnull=False
-        ).exclude(archivo_firmado='').count()
+        ).exclude(archivo_firmado='').distinct().count()
 
-        # Agrupar los datos: semestre -> materia -> lista de planes
         datos[semestre][materia].append({
             'materia': materia,
+            'semestre': semestre,
             'planes': planes_count,
             'docente': docente,
-            'firmados':planes_firmados
+            'firmados': planes_firmados
         })
 
-    # Renderizar el template HTML
-    template = get_template('reportes/reporte_pdf.html')
-   # html = template.render({'carrera': carrera, 'datos': dict(datos)})
-    html = template.render({'carrera': carrera, 'datos': json.loads(json.dumps(datos))})
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = 'inline; filename="reporte_planes.pdf"'
 
+    doc = BaseDocTemplate(response, pagesize=letter)
+    frame = Frame(40, 80, 500, 650, id="normal")
+    plantilla = PageTemplate(
+        id="plantilla",
+        frames=frame,
+        onPage=encabezado,
+        onPageEnd=pie_pagina
+    )
+    doc.addPageTemplates([plantilla])
 
-    # Configurar la respuesta HTTP para generar el PDF
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'inline; filename="reporte.pdf"'
+    elementos = []
+    estilos = getSampleStyleSheet()
+    estilos.add(ParagraphStyle(
+        name="TituloCentrado",
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=16,
+        alignment=TA_CENTER
+    ))
 
-    # Crear el PDF a partir del HTML
-    pisa_status = pisa.CreatePDF(html, dest=response)
+    elementos.append(Spacer(1, 20))
+    elementos.append(Paragraph(f"REPORTE DE PLANES DE CLASE - {carrera.upper()}", estilos["TituloCentrado"]))
+    elementos.append(Spacer(1, 10))
 
-    if pisa_status.err:
-        return HttpResponse('Error al generar el PDF')
+    for semestre, materias_dict in sorted(datos.items()):
+        elementos.append(Paragraph(f"Semestre: {semestre}", estilos["Heading3"]))
+        data = [["Materia", "Docente", "Total Planes", "Firmados", "Observaciones"]]
+
+        for materia, registros in materias_dict.items():
+            for registro in registros:
+                # Buscar todos los planes asociados a esa materia
+                planes_ids = Planes.objects.filter(
+                    numero_actividad__materia=registro["materia"]
+                ).values_list('id', flat=True)
+
+                # Contar todas las observaciones para esos planes
+                observaciones_count = ObservacionPlan.objects.filter(
+                    plan_id__in=planes_ids
+                ).count()
+
+                fila = [
+                    registro["materia"],
+                    registro["docente"],
+                    str(registro["planes"]),
+                    str(registro["firmados"]),
+                    str(observaciones_count)
+                ]
+                data.append(fila)
+
+        tabla = Table(data, colWidths=[170, 110, 80, 80, 80])
+        tabla.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+
+        elementos.append(tabla)
+        elementos.append(Spacer(1, 15))
+
+    doc.build(elementos)
 
     return response
+
+
+def agregar_observacion(request):
+    if request.method == 'POST':
+        plan_id = request.POST.get('plan_id')
+        observacion_texto = request.POST.get('observacion')
+        plan = get_object_or_404(Planes, pk=plan_id)
+
+        ObservacionPlan.objects.create(
+            plan=plan,
+            observacion=observacion_texto,
+            autor=request.user if request.user.is_authenticated else None
+        )
+
+        messages.success(request, "¡Observación guardada correctamente!")
+        return redirect(request.META.get('HTTP_REFERER', '/'))

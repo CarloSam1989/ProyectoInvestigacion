@@ -199,6 +199,16 @@
     <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
     <script src="{% static 'js/datatables-init.js' %}"></script>
     <script>
+      function toggleObsForm(planId) {
+        var form = document.getElementById("observacion-form-" + planId);
+        if (form.style.display === "none" || form.style.display === "") {
+          form.style.display = "block";
+        } else {
+          form.style.display = "none";
+        }
+      }
+    </script>
+    <script>
       document.addEventListener("DOMContentLoaded", function () {
         // Activa los dropdowns de Bootstrap manualmente
         var dropdownElementList = [].slice.call(
