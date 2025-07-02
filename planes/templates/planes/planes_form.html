@@ -1,5 +1,8 @@
 {% extends 'base.html' %} {% block content %}
-<h1>Crear Nuevo Plan para {{ materia }}</h1>
+<h1>
+  {% if form.instance.pk %}Editar Plan{% else %}Crear Nuevo Plan{% endif %} para
+  {{ materia }}
+</h1>
 
 <br />
 <form method="POST">
@@ -35,54 +38,25 @@
     </div>
   </div>
   <div class="mb-3">
-    <div class="form-group">
-      <label for="id_numero_actividad">Número de Actividad</label>
-      <div class="d-flex flex-wrap">
-        {% for actividad in form.numero_actividad.field.queryset %}
-        <div class="form-check me-3">
-          <input
-            type="checkbox"
-            name="numero_actividad"
-            value="{{ actividad.id }}"
-            class="form-check-input"
-            id="actividad{{ actividad.id }}"
-          />
-          <label class="form-check-label" for="actividad{{ actividad.id }}">
-            {{ actividad.numero_actividad }} - {{ actividad.tema }}
-          </label>
-        </div>
-        {% empty %}
-        <p>No hay actividades disponibles.</p>
-        {% endfor %}
-      </div>
+    <label class="form-label">Número de Actividad</label>
+    <div class="d-flex flex-wrap">
+      {% with selected_ids=form.numero_actividad.value %}
+  <div class="form-check me-3">
+    <input
+      type="checkbox"
+      name="numero_actividad"
+      value="{{ actividad.id }}"
+      class="form-check-input"
+      id="actividad{{ actividad.id }}"
+      {% if actividad.id|stringformat:"s" in selected_ids %}checked{% endif %}
+    />
+    <label class="form-check-label" for="actividad{{ actividad.id }}">
+      {{ actividad.numero_actividad }} - {{ actividad.tema }}
+    </label>
+  </div>
+{% endwith %}
+
     </div>
-    <nav>
-      <ul class="pagination justify-content-center">
-        {% if actividades_paginadas.has_previous %}
-        <li class="page-item">
-          <a
-            class="page-link"
-            href="?page={{ actividades_paginadas.previous_page_number }}"
-            >Anterior</a
-          >
-        </li>
-        {% endif %}
-
-        <li class="page-item active">
-          <span class="page-link">{{ actividades_paginadas.number }}</span>
-        </li>
-
-        {% if actividades_paginadas.has_next %}
-        <li class="page-item">
-          <a
-            class="page-link"
-            href="?page={{ actividades_paginadas.next_page_number }}"
-            >Siguiente</a
-          >
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
   </div>
   <div class="row">
     <div class="col-md-6">

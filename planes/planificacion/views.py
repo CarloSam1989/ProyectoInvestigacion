@@ -59,6 +59,31 @@ def CustomLoginView(request):
 
     return render(request, "login.html")
 
+@csrf_exempt
+def recibir_datos(request):
+    if request.method == 'POST':
+        try:
+            datos = json.loads(request.body)
+            print("✅ Datos recibidos:", datos)
+            return JsonResponse({
+                'success': True,
+                'mensaje': 'Datos recibidos correctamente',
+                'gif': 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2g5dWphZnZzZ2g3dDRxb3Y3bHlnZWtldnFsNHNsMHMwZmRhNnoxciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3q2RJBdaqJY2SV3O/giphy.gif'
+            })
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'mensaje': 'Error al leer JSON',
+                'gif': 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExajNuZWtyaW5iYnJleTN6ODN4dzFnMGlvcTNuOGFua210dmFmaXFqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KlrMS4vyq5KSY/giphy.gif'
+            }, status=400)
+    else:
+        return JsonResponse({
+            'success': False,
+            'mensaje': 'Método no permitido',
+            'gif': 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzN4NGtyZTFwZjgyNWphbmsycnc5dWVkZ3VhOGQ1eXl2cmo2bWNuZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/yUscqyw0M6wFxviJLj/giphy.gif'
+        }, status=405)
+
+
 def logout_view(request):
     request.session.flush()  # Eliminar todos los datos de la sesión
     return redirect("login")
@@ -916,3 +941,11 @@ def agregar_observacion(request):
 
         messages.success(request, "¡Observación guardada correctamente!")
         return redirect(request.META.get('HTTP_REFERER', '/'))
+    
+class PlanesUpdateView(SessionAuthRequiredMixin, UpdateView):
+    model = Planes
+    form_class = PlanesForm
+    template_name = 'planes/planes_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('planes_list') 

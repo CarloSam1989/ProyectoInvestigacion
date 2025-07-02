@@ -104,9 +104,12 @@
             >
               <i class="fa-solid fa-file-pdf"></i> Ver Firmado
             </a>
-            <label for="archivo_{{ plan.id }}" class="btn btn-danger mb-1">
-              <i class="fa-solid fa-upload"></i> Subir
-            </label>
+            <a
+              href="{% url 'planes_edit' plan.id %}"
+              class="btn btn-warning mb-1"
+            >
+              <i class="fa-solid fa-pen-to-square"></i> Editar
+            </a>
             {% endif %}
           </td>
         </tr>

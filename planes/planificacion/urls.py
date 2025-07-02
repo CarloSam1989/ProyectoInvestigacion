@@ -40,7 +40,7 @@ urlpatterns = [
 
     path('planes/', PlanesListView.as_view(), name='planes_list'),
     path('planes/create/<str:materia>/', crear_plan, name='planes_create'),
-
+    path('planes/<int:pk>/editar/', PlanesUpdateView.as_view(), name='planes_edit'),
     path("plan/<int:plan_id>/", vista_plan_detalle, name="detalle_plan"),
     path("plan/<int:plan_id>/pdf/", generar_plan_pdf, name="plan_pdf"),
     path('planes/<int:plan_id>/subir/', subir_plan_firmado, name='subir_plan_firmado'),
@@ -49,6 +49,8 @@ urlpatterns = [
     path('subir_archivo_firmado/', subir_archivo_firmado, name='subir_archivo_firmado'),
     path('reporte_pdf/<str:carrera>/', generar_reporte_pdf, name='reporte_pdf'),
     path('agregar_observacion/', agregar_observacion, name='agregar_observacion'),
+
+    path('api/recibir-datos/', recibir_datos, name='recibir_datos'),
   
 
 
