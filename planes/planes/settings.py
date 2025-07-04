@@ -86,7 +86,14 @@ WSGI_APPLICATION = 'planes.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
+      'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'planificacion',
+        'USER': 'postgres',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',  # Cambia si usas un host remoto
+        'PORT': '5432',       # Puerto predeterminado de PostgreSQL
+    }
 }
 
 
