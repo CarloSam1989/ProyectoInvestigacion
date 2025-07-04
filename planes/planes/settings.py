@@ -34,7 +34,7 @@ CSRF_COOKIE_SECURE=False
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com']
+ALLOWED_HOSTS = ['proyectoinvestigacion-production.up.railway.app']
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True  # Solo redirige a HTTPS en producción
