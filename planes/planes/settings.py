@@ -48,11 +48,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders', 
     'widget_tweaks',
     'planificacion',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # ¡Debe estar al principio!
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -61,6 +64,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# Permite solo el dominio específico (ajusta esto según tu necesidad)
+CORS_ALLOWED_ORIGINS = [
+    "https://atenea.instipp.edu.ec",
+]
+
+# Si necesitas permitir cookies en solicitudes CORS (opcional)
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'planes.urls'
 
