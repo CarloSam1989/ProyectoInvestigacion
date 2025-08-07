@@ -71,7 +71,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # Si necesitas permitir cookies en solicitudes CORS (opcional)
 CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_ALL_ORIGINS = True  # ¡No recomendado en producción!
 ROOT_URLCONF = 'planes.urls'
 
 TEMPLATES = [
