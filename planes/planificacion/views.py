@@ -63,26 +63,51 @@ def CustomLoginView(request):
 def recibir_datos(request):
     if request.method == 'POST':
         try:
+            # 1. Recibimos y decodificamos el JSON (esto no cambia)
             datos = json.loads(request.body)
-            print("✅ Datos recibidos:", datos)
+
+            # 2. Extraemos la información específica de la estructura
+            # ==========================================================
+            persona_info = datos.get('persona', {})
+            nombres = persona_info.get('nombres', 'N/A')
+            apellidos = persona_info.get('apellidos', 'N/A')
+            
+            # Accedemos a la lista de diccionarios
+            distributivo = datos.get('distributivo_activo', [])
+            
+            # Extraemos el token
+            token_recibido = datos.get('token', 'No se encontró el token')
+
+            # (Opcional) Podemos procesar la lista, por ejemplo, contar los cursos
+            numero_de_cursos = len(distributivo)
+            
+            # Imprimimos en la consola del servidor para verificar
+            print(f"✅ Datos de: {nombres} {apellidos}")
+            print(f"   - Cédula: {persona_info.get('cedula', 'N/A')}")
+            print(f"   - Tiene {numero_de_cursos} materias activas.")
+            print(f"   - Token recibido: ...{token_recibido[-10:]}") # Mostramos solo el final del token
+            # ==========================================================
+            
+            # 3. Enviamos una respuesta confirmando lo que recibimos
             return JsonResponse({
                 'success': True,
-                'mensaje': 'Datos recibidos correctamente',
+                'mensaje': f'Datos de {nombres} recibidos correctamente',
+                'resumen': f'Se procesaron {numero_de_cursos} materias.',
                 'gif': 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2g5dWphZnZzZ2g3dDRxb3Y3bHlnZWtldnFsNHNsMHMwZmRhNnoxciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3q2RJBdaqJY2SV3O/giphy.gif'
             })
+            
         except json.JSONDecodeError:
             return JsonResponse({
                 'success': False,
-                'mensaje': 'Error al leer JSON',
+                'mensaje': 'Error: El formato del JSON es inválido.',
                 'gif': 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExajNuZWtyaW5iYnJleTN6ODN4dzFnMGlvcTNuOGFua210dmFmaXFqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KlrMS4vyq5KSY/giphy.gif'
             }, status=400)
     else:
         return JsonResponse({
             'success': False,
-            'mensaje': 'Método no permitido',
+            'mensaje': 'Error: Este endpoint solo acepta peticiones POST.',
             'gif': 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzN4NGtyZTFwZjgyNWphbmsycnc5dWVkZ3VhOGQ1eXl2cmo2bWNuZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/yUscqyw0M6wFxviJLj/giphy.gif'
         }, status=405)
-
 
 def logout_view(request):
     request.session.flush()  # Eliminar todos los datos de la sesión
