@@ -7,7 +7,7 @@ from django.db.models import Count, Q
 from django.conf import settings
 from django.template.loader import get_template
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
