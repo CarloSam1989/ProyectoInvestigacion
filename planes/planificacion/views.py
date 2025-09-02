@@ -58,56 +58,58 @@ def CustomLoginView(request):
             messages.error(request, "Usuario o contraseña incorrectos. Intenta de nuevo.")
 
     return render(request, "login.html")
-
 @csrf_exempt
 def recibir_datos(request):
     if request.method == 'POST':
         try:
-            # 1. Recibimos y decodificamos el JSON (esto no cambia)
             datos = json.loads(request.body)
 
-            # 2. Extraemos la información específica de la estructura
-            # ==========================================================
+            # --- ✅ INICIO: Nueva Lógica de Autenticación ---
+
+            # 1. Extraemos la información clave del JSON
             persona_info = datos.get('persona', {})
-            nombres = persona_info.get('nombres', 'N/A')
-            apellidos = persona_info.get('apellidos', 'N/A')
-            
-            # Accedemos a la lista de diccionarios
             distributivo = datos.get('distributivo_activo', [])
             
-            # Extraemos el token
-            token_recibido = datos.get('token', 'No se encontró el token')
+            # Verificamos que los datos mínimos existan
+            if not persona_info or not distributivo:
+                return JsonResponse({
+                    'success': False, 
+                    'mensaje': 'Faltan datos de persona o distributivo en la petición.'
+                }, status=400)
 
-            # (Opcional) Podemos procesar la lista, por ejemplo, contar los cursos
-            numero_de_cursos = len(distributivo)
+            # 2. Creamos la sesión del usuario con los datos recibidos
+            #    (Igual que hacía tu antiguo login)
+            request.session["user"] = persona_info.get('nombres', 'Usuario Anónimo')
+            request.session["rol"] = "Docente"  # Puedes extraer esto del token si lo decodificas
+            request.session["nombre_completo"] = f"{persona_info.get('nombres')} {persona_info.get('apellidos')}"
             
-            # Imprimimos en la consola del servidor para verificar
-            print(f"✅ Datos de: {nombres} {apellidos}")
-            print(f"   - Cédula: {persona_info.get('cedula', 'N/A')}")
-            print(f"   - Tiene {numero_de_cursos} materias activas.")
-            print(f"   - Token recibido: ...{token_recibido[-10:]}") # Mostramos solo el final del token
-            # ==========================================================
+            # 3. Procesamos la lista de materias para la plantilla
+            #    Extraemos el nombre de la carrera de cada materia
+            materias = [item.get('carrera') for item in distributivo]
+            # Usamos set() para obtener las carreras únicas y evitar duplicados
+            request.session["materia_cor"] = list(set(materias))
             
-            # 3. Enviamos una respuesta confirmando lo que recibimos
+            # --- ✅ FIN: Lógica de Autenticación ---
+
+            # 4. Respondemos con éxito y la URL a la que se debe redirigir
             return JsonResponse({
                 'success': True,
-                'mensaje': f'Datos de {nombres} recibidos correctamente',
-                'resumen': f'Se procesaron {numero_de_cursos} materias.',
-                'gif': 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2g5dWphZnZzZ2g3dDRxb3Y3bHlnZWtldnFsNHNsMHMwZmRhNnoxciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3q2RJBdaqJY2SV3O/giphy.gif'
+                'mensaje': 'Autenticación exitosa. Redirigiendo al menú principal...',
+                'redirect_url': reverse('menu_principal') # Genera la URL a /menu/ dinámicamente
             })
             
         except json.JSONDecodeError:
             return JsonResponse({
                 'success': False,
-                'mensaje': 'Error: El formato del JSON es inválido.',
-                'gif': 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExajNuZWtyaW5iYnJleTN6ODN4dzFnMGlvcTNuOGFua210dmFmaXFqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KlrMS4vyq5KSY/giphy.gif'
+                'mensaje': 'Error: El formato del JSON es inválido.'
             }, status=400)
     else:
         return JsonResponse({
             'success': False,
-            'mensaje': 'Error: Este endpoint solo acepta peticiones POST.',
-            'gif': 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzN4NGtyZTFwZjgyNWphbmsycnc5dWVkZ3VhOGQ1eXl2cmo2bWNuZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/yUscqyw0M6wFxviJLj/giphy.gif'
+            'mensaje': 'Error: Este endpoint solo acepta peticiones POST.'
         }, status=405)
+
+
 
 def logout_view(request):
     request.session.flush()  # Eliminar todos los datos de la sesión
